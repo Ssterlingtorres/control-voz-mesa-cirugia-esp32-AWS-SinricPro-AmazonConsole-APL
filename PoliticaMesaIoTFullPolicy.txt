@@ -1,0 +1,29 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "MesaQuirurgicaIoTPermissions",
+            "Effect": "Allow",
+            "Action": [
+                "iot:GetThingShadow",
+                "iot:UpdateThingShadow",
+                "iot:Publish"
+            ],
+            "Resource": [
+                "arn:aws:iot:us-east-1:*:thing/Mesa_Quirurgica",
+                "arn:aws:iot:us-east-1:*:topic/quirofano/mesa/control",
+                "arn:aws:iot:us-east-1:*:topic/$aws/things/Mesa_Quirurgica/shadow/*"
+            ]
+        },
+        {
+            "Sid": "CloudWatchLogsAccess",
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ],
+            "Resource": "arn:aws:logs:us-east-1:*:*"
+        }
+    ]
+}
