@@ -1,0 +1,500 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Mesa Quirúrgica por Voz</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: banda de controles arriba; diagrama ancho a la izquierda y panel de lectura a la derecha (se apilan en móvil). */
+:root{
+  --bg:#EEF3F2; --surface:#FFFFFF; --ink:#11262A; --muted:#566C70; --line:#C3D2D2;
+  --user:#B4621F; --user-soft:#F6E7D9;
+  --cloud:#2C66A8; --cloud-soft:#E1EBF6;
+  --hw:#0C7765; --hw-soft:#DCEFEA;
+  --signal:#D99A00; --danger:#C0402B;
+  --zone-user:rgba(180,98,31,.06); --zone-cloud:rgba(44,102,168,.06); --zone-hw:rgba(12,119,101,.06);
+  --f-display:"Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", Roboto, Arial, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C1618; --surface:#132226; --ink:#E2EBEB; --muted:#93A7AA; --line:#2B3F43;
+    --user:#E39A5A; --user-soft:#3A2A1C;
+    --cloud:#72A9E6; --cloud-soft:#1B2B3E;
+    --hw:#3FC2A8; --hw-soft:#163530;
+    --signal:#F2C24D; --danger:#F07A63;
+    --zone-user:rgba(227,154,90,.07); --zone-cloud:rgba(114,169,230,.07); --zone-hw:rgba(63,194,168,.07);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C1618; --surface:#132226; --ink:#E2EBEB; --muted:#93A7AA; --line:#2B3F43;
+  --user:#E39A5A; --user-soft:#3A2A1C;
+  --cloud:#72A9E6; --cloud-soft:#1B2B3E;
+  --hw:#3FC2A8; --hw-soft:#163530;
+  --signal:#F2C24D; --danger:#F07A63;
+  --zone-user:rgba(227,154,90,.07); --zone-cloud:rgba(114,169,230,.07); --zone-hw:rgba(63,194,168,.07);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 40px}
+.wrap{max-width:1320px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(1.5rem,2.6vw,2.1rem);line-height:1.15;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.lede{margin:.35rem 0 0;color:var(--muted);max-width:68ch}
+.eyebrow{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--hw)}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.group{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.group-label{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-right:2px}
+button{font:inherit;cursor:pointer}
+.cmd{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:.88rem}
+.cmd[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--surface)}
+.cmd.paro[aria-pressed="true"]{border-color:var(--danger);background:var(--danger);color:#fff}
+.run{border:0;background:var(--hw);color:#fff;border-radius:8px;padding:8px 16px;font-weight:600;font-family:var(--f-display);letter-spacing:.01em}
+.run:disabled{opacity:.55;cursor:progress}
+.chip{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:6px;padding:5px 10px;font-size:.84rem;display:inline-flex;gap:6px;align-items:center}
+.chip[aria-pressed="true"]{color:var(--ink);border-color:var(--ink)}
+.chip i{width:10px;height:10px;border-radius:3px;display:inline-block}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+
+.main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+@media (max-width:980px){.main{grid-template-columns:minmax(0,1fr)}}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow-x:auto;min-width:0}
+.stage svg{display:block;width:100%;min-width:760px;height:auto}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.panel h2{font-family:var(--f-display);font-weight:600;font-size:1.15rem;margin:0;line-height:1.25}
+.panel p{margin:0}
+.tag{display:inline-block;font-family:var(--f-mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:4px}
+.tag.user{background:var(--user-soft);color:var(--user)}
+.tag.cloud{background:var(--cloud-soft);color:var(--cloud)}
+.tag.hw{background:var(--hw-soft);color:var(--hw)}
+dl.spec{display:grid;grid-template-columns:max-content 1fr;gap:6px 12px;margin:0;font-size:.9rem}
+dl.spec dt{color:var(--muted)}
+dl.spec dd{margin:0;font-family:var(--f-mono);font-size:.84rem}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;counter-reset:s}
+.steps li{counter-increment:s;display:grid;grid-template-columns:26px 1fr;gap:8px;font-size:.9rem;color:var(--muted);transition:color .2s}
+.steps li::before{content:counter(s);font-family:var(--f-mono);font-size:.78rem;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center}
+.steps li.now{color:var(--ink)}
+.steps li.now::before{background:var(--signal);border-color:var(--signal);color:#1b1400}
+.steps li.done::before{background:var(--hw);border-color:var(--hw);color:#fff}
+code.json{font-family:var(--f-mono);font-size:.82rem;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;display:block;overflow-x:auto;white-space:pre}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:.82rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend svg{width:34px;height:10px}
+.hint{font-size:.85rem;color:var(--muted)}
+
+/* SVG */
+.zone-user{fill:var(--zone-user)} .zone-cloud{fill:var(--zone-cloud)} .zone-hw{fill:var(--zone-hw)}
+.zone-label{font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;fill:var(--muted)}
+.node{cursor:pointer;transition:opacity .25s}
+.node rect.box{fill:var(--surface);stroke-width:1.6}
+.node.user rect.box{stroke:var(--user)} .node.cloud rect.box{stroke:var(--cloud)} .node.hw rect.box{stroke:var(--hw)}
+.node .stripe{stroke:none}
+.node.user .stripe{fill:var(--user)} .node.cloud .stripe{fill:var(--cloud)} .node.hw .stripe{fill:var(--hw)}
+.node .t1{font-family:var(--f-display);font-weight:600;font-size:14.5px;fill:var(--ink)}
+.node .t2{font-family:var(--f-mono);font-size:11px;fill:var(--muted)}
+.node:hover rect.box,.node.sel rect.box{stroke-width:2.8}
+.node.lit rect.box{stroke:var(--signal);stroke-width:3}
+.node.stop rect.box{stroke:var(--danger);stroke-width:3}
+.dim{opacity:.18}
+.wire{fill:none;stroke:var(--line);stroke-width:2.2}
+.wire.voice{stroke:var(--user);stroke-dasharray:2 6;stroke-linecap:round;stroke-width:2.6}
+.wire.cloud{stroke:var(--cloud)}
+.wire.bus{stroke:var(--hw);stroke-width:1.6}
+.wire.power{stroke:var(--hw);stroke-width:3.4}
+.wire.back{stroke:var(--cloud);stroke-dasharray:7 5;stroke-width:1.8}
+.wire.lit{stroke:var(--signal)}
+.wlabel{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+.dot{fill:var(--signal);stroke:var(--surface);stroke-width:2}
+.figure-skin{fill:#D9A47C} .figure-gown{fill:#2E8B7A} .figure-cap{fill:#4A9C8C} .figure-mask{fill:#CFE6E1}
+.figure-line{stroke:var(--ink);stroke-width:1.2;fill:none}
+.bubble{fill:var(--surface);stroke:var(--user);stroke-width:1.6}
+.bubble-t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}
+.bubble-t.b{font-weight:600}
+.echo-body{fill:#2A3236} .echo-screen{fill:#0F1A1D} .echo-text{font-family:var(--f-mono);font-size:10.5px;fill:#9FE3D4}
+.echo-text.small{font-size:9px;fill:#6E8C88}
+.table-metal{fill:#8A9A9D} .table-pad{fill:var(--hw)} .table-pad2{fill:var(--hw);opacity:.75}
+.table-base{fill:#5E6E71}
+.tlabel{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+#elev,#slide,#tilt{transform-box:view-box;transition:transform 1.3s cubic-bezier(.45,.05,.3,1)}
+#tilt{transform-origin:1010px 606px}
+@media (prefers-reduced-motion: reduce){#elev,#slide,#tilt{transition:none}.node{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Arquitectura del prototipo</div>
+      <h1>Mesa Quirúrgica por Voz</h1>
+      <p class="lede">El anestesiólogo da una orden a Alexa, la nube la convierte en un mensaje JSON y la ESP32‑S3 mueve la mesa con relés o con el servomotor, verificando la posición con sus sensores. Toca cualquier bloque para ver qué hace, o simula un comando.</p>
+    </div>
+  </header>
+
+  <div class="toolbar" role="group" aria-label="Controles del diagrama">
+    <div class="group" role="radiogroup" aria-label="Comando de voz">
+      <span class="group-label">Comando</span>
+      <button class="cmd" id="c-tren" data-cmd="tren" aria-pressed="true">Trendelenburg 10°</button>
+      <button class="cmd" id="c-subir" data-cmd="subir" aria-pressed="false">Subir 20 mm</button>
+      <button class="cmd" id="c-caudal" data-cmd="caudal" aria-pressed="false">Caudal 30 mm</button>
+      <button class="cmd paro" id="c-paro" data-cmd="paro" aria-pressed="false">Paro de emergencia</button>
+      <button class="run" id="run">Simular comando</button>
+    </div>
+    <div class="group" aria-label="Filtrar por capa">
+      <span class="group-label">Capa</span>
+      <button class="chip" id="f-all" data-layer="all" aria-pressed="true">Todo</button>
+      <button class="chip" id="f-user" data-layer="user" aria-pressed="false"><i style="background:var(--user)"></i>Usuario</button>
+      <button class="chip" id="f-cloud" data-layer="cloud" aria-pressed="false"><i style="background:var(--cloud)"></i>Software y nube</button>
+      <button class="chip" id="f-hw" data-layer="hw" aria-pressed="false"><i style="background:var(--hw)"></i>Hardware</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="stage">
+      <svg id="diagram" viewBox="0 0 1200 760" role="img" aria-labelledby="dgTitle dgDesc">
+        <title id="dgTitle">Diagrama general del sistema de control por voz</title>
+        <desc id="dgDesc">Flujo desde la voz del anestesiólogo hasta el movimiento de la mesa, pasando por Alexa, AWS Lambda, AWS IoT Core, la ESP32-S3, los sensores, los relés y el driver del servomotor.</desc>
+
+        <!-- Zonas -->
+        <rect class="zone-user" x="12" y="12" width="320" height="736" rx="14"/>
+        <rect class="zone-cloud" x="346" y="12" width="842" height="222" rx="14"/>
+        <rect class="zone-hw" x="346" y="246" width="842" height="502" rx="14"/>
+        <text class="zone-label" x="30" y="40">QUIRÓFANO · USUARIO</text>
+        <text class="zone-label" x="364" y="40">SOFTWARE Y NUBE</text>
+        <text class="zone-label" x="364" y="268">HARDWARE · PROTOTIPO</text>
+
+        <!-- Cables (debajo de los nodos) -->
+        <g id="wires">
+          <path id="p-voz" class="wire voice" d="M250 500 V105 H380"/>
+          <path id="p-nlu" class="wire cloud" d="M570 105 H610"/>
+          <path id="p-json" class="wire cloud" d="M800 105 H840"/>
+          <path id="p-mqtt" class="wire cloud" d="M935 140 V250 H740 V330"/>
+          <path id="p-gpio" class="wire power" d="M740 420 V470"/>
+          <path id="p-rel-dio" class="wire power" d="M740 522 V580"/>
+          <path id="p-dio-caja" class="wire power" d="M740 632 V670"/>
+          <path id="p-caja-mesa" class="wire power" d="M840 696 H948"/>
+          <path id="p-mando" class="wire power" d="M580 606 H640"/>
+          <path id="p-kinco" class="wire power" d="M840 360 H900"/>
+          <path id="p-servo" class="wire power" d="M1015 390 V420"/>
+          <path id="p-servo-mesa" class="wire power" d="M1015 472 V588"/>
+          <path id="p-s1" class="wire bus" d="M580 296 H612 V375 H640"/>
+          <path id="p-s2" class="wire bus" d="M580 361 H612 V375 H640"/>
+          <path id="p-s3" class="wire bus" d="M580 426 H612 V375 H640"/>
+          <path id="p-s4" class="wire bus" d="M580 491 H612 V375 H640"/>
+          <path id="p-iot-shadow" class="wire back" d="M880 140 V186 H800"/>
+          <path id="p-shadow-echo" class="wire back" d="M610 186 H290 V500"/>
+        </g>
+        <g id="wlabels">
+          <text class="wlabel" x="258" y="300" transform="rotate(-90 258 300)">voz</text>
+          <text class="wlabel" x="574" y="96">intent</text>
+          <text class="wlabel" x="804" y="96">JSON</text>
+          <text class="wlabel" x="944" y="214">Wi‑Fi · MQTT/TLS</text>
+          <text class="wlabel" x="748" y="452">GPIO</text>
+          <text class="wlabel" x="748" y="556">cable</text>
+          <text class="wlabel" x="856" y="688">cableado</text>
+          <text class="wlabel" x="844" y="352">pulso/dir</text>
+          <text class="wlabel" x="616" y="272">I2C</text>
+          <text class="wlabel" x="420" y="180">telemetría (Device Shadow)</text>
+        </g>
+
+        <!-- Quirófano: anestesiólogo + Echo Show -->
+        <g id="n-echo" class="node user" data-id="echo" tabindex="0" role="button" aria-label="Amazon Echo Show">
+          <rect class="box" x="196" y="500" width="120" height="96" rx="10"/>
+          <rect class="echo-body" x="206" y="510" width="100" height="62" rx="5"/>
+          <rect class="echo-screen" x="212" y="515" width="88" height="52" rx="3"/>
+          <text id="echo-l1" class="echo-text" x="256" y="537" text-anchor="middle">Modo quirófano</text>
+          <text id="echo-l2" class="echo-text small" x="256" y="554" text-anchor="middle">en espera</text>
+          <text class="t1" x="256" y="590" text-anchor="middle" style="font-size:12.5px">Echo Show</text>
+        </g>
+
+        <g id="n-medico" class="node user" data-id="medico" tabindex="0" role="button" aria-label="Anestesiólogo">
+          <rect class="box" x="30" y="300" width="150" height="420" rx="12" style="fill:transparent;stroke-opacity:.0"/>
+          <!-- cabeza -->
+          <path class="figure-cap" d="M78 352 Q105 320 132 352 V360 H78 Z"/>
+          <circle class="figure-skin" cx="105" cy="372" r="24"/>
+          <path class="figure-cap" d="M80 360 Q105 334 130 360 Z"/>
+          <rect class="figure-mask" x="88" y="374" width="34" height="16" rx="6"/>
+          <!-- cuerpo -->
+          <path class="figure-gown" d="M60 420 Q105 398 150 420 L162 600 H48 Z"/>
+          <rect class="figure-gown" x="62" y="598" width="34" height="100" rx="8"/>
+          <rect class="figure-gown" x="114" y="598" width="34" height="100" rx="8"/>
+          <!-- brazo hacia la Echo -->
+          <path class="figure-gown" d="M140 430 Q178 470 196 520 L184 528 Q160 484 132 456 Z"/>
+          <circle class="figure-skin" cx="192" cy="527" r="8"/>
+          <path class="figure-line" d="M132 382 q8 -4 0 -10 M137 386 q12 -8 0 -18" stroke-linecap="round"/>
+          <text class="t1" x="105" y="726" text-anchor="middle" style="font-size:13px">Anestesiólogo</text>
+        </g>
+
+        <g id="bubble">
+          <path class="bubble" d="M30 212 H232 Q240 212 240 220 V282 Q240 290 232 290 H132 L118 312 L112 290 H38 Q30 290 30 282 V220 Q30 212 38 212 Z"/>
+          <text id="bub-1" class="bubble-t b" x="42" y="240">«Alexa, pon la mesa en</text>
+          <text id="bub-2" class="bubble-t b" x="42" y="260">Trendelenburg 10 grados»</text>
+          <text class="bubble-t" x="42" y="280" style="font-size:11px;fill:var(--muted)">sin tocar el mando</text>
+        </g>
+
+        <!-- Nube -->
+        <g id="n-alexa" class="node cloud" data-id="alexa" tabindex="0" role="button" aria-label="Alexa NLU">
+          <rect class="box" x="380" y="70" width="190" height="70" rx="10"/><rect class="stripe" x="380" y="70" width="6" height="70" rx="3"/>
+          <text class="t1" x="398" y="100">Alexa · NLU</text><text class="t2" x="398" y="122">voz → intención + slots</text>
+        </g>
+        <g id="n-lambda" class="node cloud" data-id="lambda" tabindex="0" role="button" aria-label="Skill y AWS Lambda">
+          <rect class="box" x="610" y="70" width="190" height="70" rx="10"/><rect class="stripe" x="610" y="70" width="6" height="70" rx="3"/>
+          <text class="t1" x="628" y="100">Skill + AWS Lambda</text><text class="t2" x="628" y="122">intent → mensaje JSON</text>
+        </g>
+        <g id="n-iot" class="node cloud" data-id="iot" tabindex="0" role="button" aria-label="AWS IoT Core">
+          <rect class="box" x="840" y="70" width="190" height="70" rx="10"/><rect class="stripe" x="840" y="70" width="6" height="70" rx="3"/>
+          <text class="t1" x="858" y="100">AWS IoT Core</text><text class="t2" x="858" y="122">broker MQTT · mTLS 8883</text>
+        </g>
+        <g id="n-shadow" class="node cloud" data-id="shadow" tabindex="0" role="button" aria-label="Device Shadow">
+          <rect class="box" x="610" y="160" width="190" height="52" rx="10"/><rect class="stripe" x="610" y="160" width="6" height="52" rx="3"/>
+          <text class="t1" x="628" y="183">Device Shadow</text><text class="t2" x="628" y="201">estado reportado</text>
+        </g>
+        <g id="n-apl" class="node cloud" data-id="apl" tabindex="0" role="button" aria-label="Interfaz APL">
+          <rect class="box" x="1050" y="70" width="120" height="70" rx="10"/><rect class="stripe" x="1050" y="70" width="6" height="70" rx="3"/>
+          <text class="t1" x="1066" y="100">APL</text><text class="t2" x="1066" y="122">pantalla Echo</text>
+        </g>
+
+        <!-- Hardware -->
+        <g id="n-mpu1" class="node hw" data-id="mpu1" tabindex="0" role="button" aria-label="MPU6050 base">
+          <rect class="box" x="380" y="270" width="200" height="52" rx="10"/><rect class="stripe" x="380" y="270" width="6" height="52" rx="3"/>
+          <text class="t1" x="398" y="293">MPU6050 base</text><text class="t2" x="398" y="311">0x68 · Trendelenburg / Tilt</text>
+        </g>
+        <g id="n-mpu2" class="node hw" data-id="mpu2" tabindex="0" role="button" aria-label="MPU6050 espaldar">
+          <rect class="box" x="380" y="335" width="200" height="52" rx="10"/><rect class="stripe" x="380" y="335" width="6" height="52" rx="3"/>
+          <text class="t1" x="398" y="358">MPU6050 espaldar</text><text class="t2" x="398" y="376">0x69 · Fowler</text>
+        </g>
+        <g id="n-tof1" class="node hw" data-id="tof1" tabindex="0" role="button" aria-label="VL53L0X altura">
+          <rect class="box" x="380" y="400" width="200" height="52" rx="10"/><rect class="stripe" x="380" y="400" width="6" height="52" rx="3"/>
+          <text class="t1" x="398" y="423">VL53L0X altura</text><text class="t2" x="398" y="441">0x30 · eje vertical</text>
+        </g>
+        <g id="n-tof2" class="node hw" data-id="tof2" tabindex="0" role="button" aria-label="VL53L0X longitudinal">
+          <rect class="box" x="380" y="465" width="200" height="52" rx="10"/><rect class="stripe" x="380" y="465" width="6" height="52" rx="3"/>
+          <text class="t1" x="398" y="488">VL53L0X longitudinal</text><text class="t2" x="398" y="506">0x31 · cefalocaudal</text>
+        </g>
+        <g id="n-esp" class="node hw" data-id="esp" tabindex="0" role="button" aria-label="ESP32-S3">
+          <rect class="box" x="640" y="330" width="200" height="90" rx="10"/><rect class="stripe" x="640" y="330" width="6" height="90" rx="3"/>
+          <text class="t1" x="658" y="362" style="font-size:17px">ESP32‑S3</text>
+          <text class="t2" x="658" y="384">control en lazo cerrado</text>
+          <text class="t2" x="658" y="402">límites · paro · telemetría</text>
+        </g>
+        <g id="n-rele" class="node hw" data-id="rele" tabindex="0" role="button" aria-label="Módulo de relés">
+          <rect class="box" x="640" y="470" width="200" height="52" rx="10"/><rect class="stripe" x="640" y="470" width="6" height="52" rx="3"/>
+          <text class="t1" x="658" y="493">Módulo de relés</text><text class="t2" x="658" y="511">HW‑281 · optoacoplado</text>
+        </g>
+        <g id="n-mando" class="node hw" data-id="mando" tabindex="0" role="button" aria-label="Mando manual">
+          <rect class="box" x="380" y="580" width="200" height="52" rx="10"/><rect class="stripe" x="380" y="580" width="6" height="52" rx="3"/>
+          <text class="t1" x="398" y="603">Mando manual</text><text class="t2" x="398" y="621">respaldo en paralelo</text>
+        </g>
+        <g id="n-diodo" class="node hw" data-id="diodo" tabindex="0" role="button" aria-label="Diodos de conexión">
+          <rect class="box" x="640" y="580" width="200" height="52" rx="10"/><rect class="stripe" x="640" y="580" width="6" height="52" rx="3"/>
+          <text class="t1" x="658" y="603">Diodos de conexión</text><text class="t2" x="658" y="621">flujo unidireccional</text>
+        </g>
+        <g id="n-caja" class="node hw" data-id="caja" tabindex="0" role="button" aria-label="Caja de control">
+          <rect class="box" x="640" y="670" width="200" height="52" rx="10"/><rect class="stripe" x="640" y="670" width="6" height="52" rx="3"/>
+          <text class="t1" x="658" y="693">Caja de control</text><text class="t2" x="658" y="711">actuadores lineales</text>
+        </g>
+        <g id="n-kinco" class="node hw" data-id="kinco" tabindex="0" role="button" aria-label="Driver Kinco FD5">
+          <rect class="box" x="900" y="330" width="230" height="60" rx="10"/><rect class="stripe" x="900" y="330" width="6" height="60" rx="3"/>
+          <text class="t1" x="918" y="355">Driver Kinco FD5</text><text class="t2" x="918" y="375">pulso · dirección · enable</text>
+        </g>
+        <g id="n-servo" class="node hw" data-id="servo" tabindex="0" role="button" aria-label="Servomotor">
+          <rect class="box" x="900" y="420" width="230" height="52" rx="10"/><rect class="stripe" x="900" y="420" width="6" height="52" rx="3"/>
+          <text class="t1" x="918" y="443">Servomotor</text><text class="t2" x="918" y="461">desplazamiento cefalocaudal</text>
+        </g>
+
+        <!-- Mesa quirúrgica -->
+        <g id="n-mesa" class="node hw" data-id="mesa" tabindex="0" role="button" aria-label="Mesa quirúrgica">
+          <rect class="box" x="866" y="540" width="304" height="196" rx="12" style="fill:transparent;stroke-opacity:.0"/>
+          <rect class="table-base" x="950" y="704" width="120" height="16" rx="4"/>
+          <g id="elev">
+            <rect class="table-metal" x="996" y="616" width="28" height="92" rx="3"/>
+            <g id="slide">
+              <g id="tilt">
+                <rect class="table-metal" x="884" y="608" width="252" height="8" rx="2"/>
+                <rect class="table-pad2" x="884" y="596" width="78" height="12" rx="4"/>
+                <rect class="table-pad" x="964" y="596" width="96" height="12" rx="4"/>
+                <rect class="table-pad2" x="1062" y="596" width="74" height="12" rx="4"/>
+                <text class="tlabel" x="886" y="590">cabeza</text>
+                <text class="tlabel" x="1108" y="590">pies</text>
+              </g>
+            </g>
+          </g>
+          <text class="t1" x="1010" y="736" text-anchor="middle" style="font-size:13px">Mesa quirúrgica</text>
+        </g>
+
+        <circle id="dot" class="dot" r="7" cx="-20" cy="-20"/>
+      </svg>
+    </div>
+
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+
+  <div class="legend" aria-label="Leyenda de conexiones">
+    <span><svg viewBox="0 0 34 10"><line x1="2" y1="5" x2="32" y2="5" stroke="var(--user)" stroke-width="2.6" stroke-dasharray="2 6" stroke-linecap="round"/></svg>Voz</span>
+    <span><svg viewBox="0 0 34 10"><line x1="2" y1="5" x2="32" y2="5" stroke="var(--cloud)" stroke-width="2.2"/></svg>Datos en la nube</span>
+    <span><svg viewBox="0 0 34 10"><line x1="2" y1="5" x2="32" y2="5" stroke="var(--cloud)" stroke-width="1.8" stroke-dasharray="7 5"/></svg>Telemetría de retorno</span>
+    <span><svg viewBox="0 0 34 10"><line x1="2" y1="5" x2="32" y2="5" stroke="var(--hw)" stroke-width="1.6"/></svg>Bus I2C</span>
+    <span><svg viewBox="0 0 34 10"><line x1="2" y1="5" x2="32" y2="5" stroke="var(--hw)" stroke-width="3.4"/></svg>Señal de potencia / control</span>
+  </div>
+</div>
+
+<script>
+(function(){
+  const INFO = {
+    medico:{t:"Anestesiólogo o cirujano", l:"user", d:"Da la orden de posicionamiento en voz alta, sin tocar el mando ni romper la asepsia. El sistema responde con una confirmación auditiva y en pantalla.", s:[["Interacción","comando de voz"],["Ejemplo","«Trendelenburg 10 grados»"]]},
+    echo:{t:"Amazon Echo Show", l:"user", d:"Capta la voz con su arreglo de micrófonos de campo lejano, la envía a Alexa y muestra al personal la posición actual de la mesa.", s:[["Ubicación","cabecera, cerca de la máquina de anestesia"],["Salida","voz + pantalla APL"]]},
+    alexa:{t:"Alexa · Comprensión del lenguaje", l:"cloud", d:"Convierte la voz en texto y reconoce la intención (por ejemplo TrendelenburgIntent) y el valor numérico con su unidad.", s:[["Intenciones","subir, bajar, tren, anti‑tren, tilt, Fowler, cefálico, caudal, paro"],["Slots","{distancia} mm · {grados} °"]]},
+    lambda:{t:"Skill personalizada + AWS Lambda", l:"cloud", d:"Recibe la intención, arma el mensaje JSON y lo publica en el tópico de control. También responde a Alexa con la confirmación verbal.", s:[["Tópico","quirofano/mesa/control"],["Mensaje","{\"comando\": …, \"valor\": …}"]]},
+    iot:{t:"AWS IoT Core", l:"cloud", d:"Broker MQTT que entrega el comando a la mesa. La conexión usa autenticación mutua con certificados X.509 (mTLS).", s:[["Puerto","8883 (MQTT sobre TLS)"],["Certificados","CA raíz · dispositivo · llave privada"]]},
+    shadow:{t:"Device Shadow", l:"cloud", d:"Guarda el último estado reportado por la mesa (altura, posición longitudinal y ángulos) para que Alexa y la pantalla lo consulten.", s:[["Publicación","cada 800 ms en movimiento, 2 s en reposo"],["Campos","tofAltura, tofLong, mpuTren, mpuTilt, mpuFowler"]]},
+    apl:{t:"Interfaz APL", l:"cloud", d:"Plantilla visual de la Skill que muestra en la Echo Show la posición de la mesa y la confirmación de cada movimiento.", s:[["Origen","datos del Device Shadow"]]},
+    esp:{t:"Microcontrolador ESP32‑S3", l:"hw", d:"Recibe el comando por Wi‑Fi, activa el actuador correspondiente y lo detiene cuando los sensores confirman la posición pedida o cuando se alcanza un límite de recorrido.", s:[["Conectividad","Wi‑Fi · MQTT/TLS"],["Seguridad","límites de recorrido, timeout de 25 s, paro de emergencia"],["Tiempo local","≈ 2 ms de recepción a activación"]]},
+    mpu1:{t:"MPU6050 de la base", l:"hw", d:"Acelerómetro de 3 ejes que mide la inclinación longitudinal (Trendelenburg) y lateral (Tilt) del tablero.", s:[["Dirección I2C","0x68"],["Rangos","Tren +26° / −5,4° · Tilt +18° / −22°"]]},
+    mpu2:{t:"MPU6050 del espaldar", l:"hw", d:"Mide el ángulo del respaldo respecto a la base para la posición Fowler.", s:[["Dirección I2C","0x69"],["Rango","−19,6° a 28,3°"]]},
+    tof1:{t:"VL53L0X de altura", l:"hw", d:"Sensor láser de tiempo de vuelo que mide la altura del tablero; las lecturas se validan y se filtran con mediana.", s:[["Dirección I2C","0x30"],["Rango","5 cm a 34,5 cm"]]},
+    tof2:{t:"VL53L0X longitudinal", l:"hw", d:"Mide el desplazamiento cefalocaudal y es la referencia para detener el servomotor.", s:[["Dirección I2C","0x31"],["Rango","55 mm a 187 mm"]]},
+    rele:{t:"Módulo de relés HW‑281", l:"hw", d:"Reemplaza los pulsadores del mando: cada relé cierra el contacto de un movimiento. La entrada optoacoplada protege los pines de la ESP32.", s:[["Canales","8 relés de 5 V"],["Aislamiento","optoacopladores PC817"]]},
+    mando:{t:"Mando manual", l:"hw", d:"Se mantiene conectado en paralelo para que el personal pueda mover o detener la mesa físicamente en cualquier momento.", s:[["Función","respaldo ante fallas de red o de voz"]]},
+    diodo:{t:"Diodos de conexión", l:"hw", d:"Permiten que la corriente fluya solo hacia la caja de control, evitando retornos entre los relés y el mando manual.", s:[["Función","unión segura relés + mando"]]},
+    caja:{t:"Caja de control de actuadores", l:"hw", d:"Alimenta los actuadores lineales que suben, bajan e inclinan la mesa según el contacto que se cierre.", s:[["Movimientos","altura, Trendelenburg, Tilt, Fowler"]]},
+    kinco:{t:"Driver Kinco FD5", l:"hw", d:"Controla el servomotor del desplazamiento longitudinal a partir de un tren de pulsos, una señal de dirección y una de habilitación, con rampa de aceleración.", s:[["Resolución","10 000 pulsos por vuelta · 5 mm/vuelta"],["Velocidad","0,30 → 5,90 mm/s"]]},
+    servo:{t:"Servomotor", l:"hw", d:"Desplaza el tablero hacia la cabeza o hacia los pies sobre una cadena fija.", s:[["Eje","cefálico / caudal"]]},
+    mesa:{t:"Mesa quirúrgica (prototipo a escala)", l:"hw", d:"Estructura con actuadores lineales y servomotor que reproduce los movimientos de una mesa real.", s:[["Movimientos","altura, Trendelenburg, Tilt, Fowler, cefalocaudal"]]}
+  };
+  const LAYER_NAME = {user:"Usuario", cloud:"Software y nube", hw:"Hardware"};
+
+  const CMDS = {
+    tren:{say:["«Alexa, pon la mesa en","Trendelenburg 10 grados»"], json:'{"comando":"tren","valor":10}', intent:"TrendelenburgIntent · grados = 10",
+      act:{paths:["p-gpio","p-rel-dio","p-dio-caja","p-caja-mesa"], nodes:["rele","diodo","caja","mesa"], text:"La ESP32 cierra el relé de Trendelenburg (GPIO 6) y el actuador inclina el tablero."},
+      sensor:{path:"p-s1", node:"mpu1", text:"El MPU6050 de la base mide el ángulo; al llegar a 10° la ESP32 apaga el relé."},
+      move:()=>{tilt.style.transform="rotate(-10deg)"}, screen:["Trendelenburg","10,0°"]},
+    subir:{say:["«Alexa, sube la mesa","20 milímetros»"], json:'{"comando":"subir","valor":20}', intent:"SubirMesaIntent · distancia = 20",
+      act:{paths:["p-gpio","p-rel-dio","p-dio-caja","p-caja-mesa"], nodes:["rele","diodo","caja","mesa"], text:"La ESP32 cierra el relé de subida (GPIO 4) y el actuador vertical eleva el tablero."},
+      sensor:{path:"p-s3", node:"tof1", text:"El VL53L0X de altura mide el recorrido; al sumar 20 mm se apaga el relé."},
+      move:()=>{elev.style.transform="translateY(-22px)"}, screen:["Altura","+20 mm"]},
+    caudal:{say:["«Alexa, desplazamiento","caudal de 30 milímetros»"], json:'{"comando":"caudal","valor":30}', intent:"DesplazamientoCaudal · distancia = 30",
+      act:{paths:["p-kinco","p-servo","p-servo-mesa"], nodes:["kinco","servo","mesa"], text:"La ESP32 envía pulsos y dirección al driver Kinco FD5 y el servomotor desplaza el tablero hacia los pies."},
+      sensor:{path:"p-s4", node:"tof2", text:"El VL53L0X longitudinal confirma los 30 mm y la ESP32 detiene los pulsos."},
+      move:()=>{slide.style.transform="translateX(30px)"}, screen:["Caudal","+30 mm"]},
+    paro:{say:["«Alexa,","paro de emergencia»"], json:'{"comando":"paro"}', intent:"ParoEmergenciaIntent",
+      act:null, sensor:null, move:null, screen:["Mesa detenida","paro activo"]}
+  };
+
+  const svg = document.getElementById("diagram");
+  const panel = document.getElementById("panel");
+  const dot = document.getElementById("dot");
+  const tilt = document.getElementById("tilt"), elev = document.getElementById("elev"), slide = document.getElementById("slide");
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let current = "tren", running = false, layer = "all";
+
+  const node = id => document.querySelector('.node[data-id="'+id+'"]');
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+  function showOverview(){
+    panel.innerHTML =
+      '<span class="tag hw">Vista general</span>'+
+      '<h2>Cómo fluye una orden</h2>'+
+      '<p>La voz entra por la Echo Show, Alexa identifica la intención y una función Lambda publica el comando en AWS IoT Core. La ESP32‑S3 lo recibe, acciona los relés o el driver del servomotor y verifica la posición con los sensores antes de detener el movimiento.</p>'+
+      '<p class="hint">Selecciona un bloque del diagrama para ver su función y sus datos técnicos, o elige un comando y pulsa «Simular comando».</p>';
+  }
+  function showNode(id){
+    const n = INFO[id]; if(!n) return;
+    document.querySelectorAll(".node.sel").forEach(e=>e.classList.remove("sel"));
+    node(id).classList.add("sel");
+    let rows = n.s.map(r=>'<dt>'+esc(r[0])+'</dt><dd>'+esc(r[1])+'</dd>').join("");
+    panel.innerHTML = '<span class="tag '+n.l+'">'+LAYER_NAME[n.l]+'</span><h2>'+esc(n.t)+'</h2><p>'+esc(n.d)+'</p><dl class="spec">'+rows+'</dl>';
+  }
+
+  document.querySelectorAll(".node").forEach(g=>{
+    g.addEventListener("click", ()=>{ if(!running) showNode(g.dataset.id); });
+    g.addEventListener("keydown", e=>{ if((e.key==="Enter"||e.key===" ") && !running){ e.preventDefault(); showNode(g.dataset.id); } });
+  });
+
+  // Filtro por capa
+  document.querySelectorAll(".chip").forEach(b=>b.addEventListener("click", ()=>{
+    layer = b.dataset.layer;
+    document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed", x===b ? "true":"false"));
+    document.querySelectorAll(".node").forEach(g=>{
+      const l = g.classList.contains("user") ? "user" : g.classList.contains("cloud") ? "cloud" : "hw";
+      g.classList.toggle("dim", layer!=="all" && l!==layer);
+    });
+  }));
+
+  // Selección de comando
+  document.querySelectorAll(".cmd").forEach(b=>b.addEventListener("click", ()=>{
+    if(running) return;
+    current = b.dataset.cmd;
+    document.querySelectorAll(".cmd").forEach(x=>x.setAttribute("aria-pressed", x===b ? "true":"false"));
+    const c = CMDS[current];
+    document.getElementById("bub-1").textContent = c.say[0];
+    document.getElementById("bub-2").textContent = c.say[1];
+  }));
+
+  const sleep = ms => new Promise(r=>setTimeout(r, reduce ? 0 : ms));
+  function travel(id, ms){
+    const p = document.getElementById(id); p.classList.add("lit");
+    if(reduce){ return Promise.resolve(); }
+    const len = p.getTotalLength();
+    return new Promise(res=>{
+      const t0 = performance.now();
+      function step(t){
+        const k = Math.min(1,(t-t0)/ms), pt = p.getPointAtLength(len*k);
+        dot.setAttribute("cx", pt.x); dot.setAttribute("cy", pt.y);
+        if(k<1) requestAnimationFrame(step); else res();
+      }
+      requestAnimationFrame(step);
+    });
+  }
+  function light(ids, on, cls){ ids.forEach(i=>{ const n=node(i); if(n) n.classList.toggle(cls||"lit", on); }); }
+  function setScreen(a,b){ document.getElementById("echo-l1").textContent=a; document.getElementById("echo-l2").textContent=b; }
+  function resetScene(){
+    document.querySelectorAll(".wire.lit").forEach(w=>w.classList.remove("lit"));
+    document.querySelectorAll(".node.lit,.node.stop,.node.sel").forEach(n=>n.classList.remove("lit","stop","sel"));
+    tilt.style.transform=""; elev.style.transform=""; slide.style.transform="";
+    dot.setAttribute("cx",-20); dot.setAttribute("cy",-20);
+    setScreen("Modo quirófano","en espera");
+  }
+
+  function renderSteps(steps, json){
+    panel.innerHTML = '<span class="tag user">Simulación</span><h2>'+esc(CMDS[current].say.join(" "))+'</h2>'+
+      '<code class="json">'+esc(json)+'</code><ol class="steps">'+steps.map(s=>'<li>'+esc(s.text)+'</li>').join("")+'</ol>';
+    return [...panel.querySelectorAll(".steps li")];
+  }
+
+  document.getElementById("run").addEventListener("click", async ()=>{
+    if(running) return; running = true;
+    const btn = document.getElementById("run"); btn.disabled = true;
+    resetScene();
+    const c = CMDS[current];
+    const steps = [
+      {text:"El anestesiólogo da la orden y la Echo Show la envía a Alexa.", go:async()=>{ light(["medico","echo"],true); await travel("p-voz",1100); light(["alexa"],true);} },
+      {text:"Alexa reconoce la intención: "+c.intent+".", go:async()=>{ await travel("p-nlu",450); light(["lambda"],true);} },
+      {text:"Lambda publica el JSON en el tópico quirofano/mesa/control.", go:async()=>{ await travel("p-json",450); light(["iot"],true);} },
+      {text:"AWS IoT Core entrega el mensaje a la ESP32‑S3 por MQTT sobre TLS.", go:async()=>{ await travel("p-mqtt",1000); light(["esp"],true);} }
+    ];
+    if(c.act){
+      steps.push({text:c.act.text, go:async()=>{ for(const p of c.act.paths){ await travel(p, 420); } light(c.act.nodes,true); c.move(); await sleep(1300);} });
+      steps.push({text:c.sensor.text, go:async()=>{ light([c.sensor.node],true); await travel(c.sensor.path,800);} });
+    } else {
+      steps.push({text:"La ESP32 apaga todos los relés y el driver del servomotor; la mesa queda inmóvil.", go:async()=>{ light(["esp","rele","kinco"],true,"stop"); await sleep(900);} });
+    }
+    steps.push({text:"Se publica el Device Shadow y la Echo Show confirma la posición.", go:async()=>{ await travel("p-iot-shadow",500); light(["shadow"],true); await travel("p-shadow-echo",1000); setScreen(c.screen[0], c.screen[1]); light(["apl"],true);} });
+
+    const items = renderSteps(steps, c.json);
+    for(let i=0;i<steps.length;i++){
+      items[i].classList.add("now");
+      await steps[i].go();
+      await sleep(250);
+      items[i].classList.remove("now"); items[i].classList.add("done");
+    }
+    dot.setAttribute("cx",-20); dot.setAttribute("cy",-20);
+    btn.disabled = false; running = false;
+  });
+
+  showOverview();
+})();
+</script>
+
+</body></html>
