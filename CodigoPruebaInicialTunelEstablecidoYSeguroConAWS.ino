@@ -1,21 +1,17 @@
-// Importamos la librería para manejar conexiones Wi-Fi cifradas y seguras (HTTPS/TLS) en el ESP32
-#include <WiFiClientSecure.h>
-// Importamos la librería PubSubClient para permitir la comunicación mediante el protocolo MQTT
-#include <PubSubClient.h>
-// Importamos la librería principal de Wi-Fi del ESP32 para conectarnos a nuestra red local
-#include <WiFi.h>
+#include <WiFiClientSecure.h>                   // Conexión WiFi segura con certificados (TLS)
+#include <PubSubClient.h>                       // Cliente MQTT para hablar con AWS IoT Core
+#include <WiFi.h>                               // Librería para conectar la ESP32 al WiFi
 
 // 1. CREDENCIALES DE RED
-// Definimos el nombre de la red Wi-Fi (SSID) y la contraseña a la que se conectará el ESP32
-const char* WIFI_SSID = "vivo Y33s";
-const char* WIFI_PASS = "Venom3y4";
+// Datos de la red WiFi, se cambian por los de la red que se vaya a usar
+const char* WIFI_SSID = "NOMBRE_DE_SU_RED";     // Nombre de la red WiFi
+const char* WIFI_PASS = "CONTRASENA_DE_SU_RED";  // Contraseña de la red WiFi
 
 // 2. ENDPOINT MQTT
-// Dirección única del servidor de AWS IoT asignada a nuestra cuenta
-const char* AWS_IOT_ENDPOINT = "a213cdp4lqcq2s-ats.iot.us-east-1.amazonaws.com"; 
+const char* AWS_IOT_ENDPOINT = "SU_ENDPOINT-ats.iot.us-east-1.amazonaws.com";  // Dirección del servidor de AWS IoT de la cuenta
 
 // 3. CERTIFICADOS DE SEGURIDAD TLS 1.2
-// Almacenamos en la memoria flash el certificado de la autoridad raíz de Amazon
+// Certificado raíz de Amazon (Amazon Root CA 1), es público y es el mismo para todos
 const char AWS_CERT_CA[] PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----
 MIIDQTCCAimgAwIBAgITBmyfz5m/jAo54vB4ikPmljZbyjANBgkqhkiG9w0BAQsF
@@ -39,117 +35,61 @@ rqXRfboQnoZsG4q5WTP468SQvvG5
 -----END CERTIFICATE-----
 )EOF";
 
-// Certificado digital específico de nuestro ESP32 que lo identifica de forma única ante AWS IoT Core
+// Certificado del dispositivo, lo identifica ante AWS IoT Core (archivo certificate.pem.crt)
+// Es privado, se pega aquí solo en la copia que se carga a la ESP32
 const char AWS_CERT_CRT[] PROGMEM = R"EOF(
------BEGIN CERTIFICATE-----
-MIIDWTCCAkGgAwIBAgIUcpj0QPeycSaks5QFW2iq1dzRBREwDQYJKoZIhvcNAQEL
-BQAwTTFLMEkGA1UECwxCQW1hem9uIFdlYiBTZXJ2aWNlcyBPPUFtYXpvbi5jb20g
-SW5jLiBMPVNlYXR0bGUgU1Q9V2FzaGluZ3RvbiBDPVVTMB4XDTI2MDQzMDAzMjYw
-NloXDTQ5MTIzMTIzNTk1OVowHjEcMBoGA1UEAwwTQVdTIElvVCBDZXJ0aWZpY2F0
-ZTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAL8lwtbridJRrAa58E+B
-5vxsPwvbsoVA8cMy8+cspVVPhFdZWuIpISIpxLIeDq33EdU4R0dMW22kzO9TjmJw
-SNLpBWICsJzrdm6Z3adCGxusEXmJhXMNgWp/tdg7oorGz7fQ8SRk0XRSQo8t4s4S
-n0IVZwvfR81cx0o8NNQanrF2/vgYGGy2eUs2FmtABwzkAJOhcXBJjt8eX4rEQmnF
-4Cr+0z/LmYzD1DlVxPBFS9xI7BUx/hs1SIuROKW81bWn2iA9PYvkfWKotLOmTqoB
-7YG9b9frV6AS06swNqnmpRNZnNfyGelIduaUorjf3FXDea4w0uw8lka9dzr19Qj+
-/20CAwEAAaNgMF4wHwYDVR0jBBgwFoAUCuC/VJmV3Tet7Ot4ZshitfpIFFIwHQYD
-VR0OBBYEFJzzE62GM0OFSB38VOaZG69AzT4IMAwGA1UdEwEB/wQCMAAwDgYDVR0P
-AQH/BAQDAgeAMA0GCSqGSIb3DQEBCwUAA4IBAQCrsKTjFOYDPagx1CTnbI4Q9pzw
-3EH5k4RGYnFGJG77ZcK2KHRN5QdqIZzUozC+ObV7IkSUHInWXqlmmDPFtMd4y7I6
-4UIB1G3wKOcaxjqo2Nrv1mj3nTuKovQfnBc14K/Xga4yQXHxax1/XMoZGuOsmDIo
-19UNxvdESwgJvzqu+rA31AC6SMCc+jPwm1Vdow3uHwI09Bj9RxbySlELBKugmKSz
-/hEkKDROndxIjEFyH1MZ2WfdPhpkdmplvNnWzUPjso44y2rPV60cwtr5rOwQDey1
-gydLH4w2bQ+Y7yDN4sy7WkeJGQldZfZaB+XjHwePsUdx4HOoExmi3PITtC8l
------END CERTIFICATE-----
+PEGAR AQUI EL CERTIFICADO DEL DISPOSITIVO
 )EOF";
 
-// Llave criptográfica privada de nuestro dispositivo. Permite firmar la comunicación de manera segura
+// Llave privada del dispositivo (archivo private.pem.key)
+// Nunca se publica, quien la tenga puede hacerse pasar por la mesa en AWS
 const char AWS_CERT_PRIVATE[] PROGMEM = R"EOF(
------BEGIN RSA PRIVATE KEY-----
-MIIEowIBAAKCAQEAvyXC1uuJ0lGsBrnwT4Hm/Gw/C9uyhUDxwzLz5yylVU+EV1la
-4ikhIinEsh4OrfcR1ThHR0xbbaTM71OOYnBI0ukFYgKwnOt2bpndp0IbG6wReYmF
-cw2Ban+12DuiisbPt9DxJGTRdFJCjy3izhKfQhVnC99HzVzHSjw01BqesXb++BgY
-bLZ5SzYWa0AHDOQAk6FxcEmO3x5fisRCacXgKv7TP8uZjMPUOVXE8EVL3EjsFTH+
-GzVIi5E4pbzVtafaID09i+R9Yqi0s6ZOqgHtgb1v1+tXoBLTqzA2qealE1mc1/IZ
-6Uh25pSiuN/cVcN5rjDS7DyWRr13OvX1CP7/bQIDAQABAoIBAGYbxN5MSn5YdJ3P
-PAks6nhTVsZ94Pp/++X7VQFb/yH4bUjACeWgdPur9k/z8IGL5zHQc3sp1flXPMZo
-CzqYor5QDjkSGMhqnARvG1Ha5WI948PZ67jPMR/0Au70xFp/47xc2ERJuv35Z2bW
-6z6MAhkqF7bm2pNgiXElgk7/vWAstR/qGMHmf+LM30dI0kC47fe2lcmFMDmw32qz
-y64COKZLxRKWBnrPxq5PDo9UPp8RaBbu1UGuqVez6ETf4fKoyRWjzOMQTYO9C9xA
-Q0iMxN7TotjBg/xDMEvR8aSLW8hA0uVzVdVUXy0dlyoTs81BZHSZM6Yx+Ju3VSU8
-7Sds5QECgYEA7Ho3sESxQij7rzTBvyAiFhRj0P4HgDq9Bk2iFp5lY71ri/lTksom
-6df7ON8fiOLIDU7PbXqtAUfzMiZY67FxHkSkLdjSb1PxGAp21ocbisCUXjF8UuLB
-crFA727xS8InTA5/Pt1sg/Yy86QU7/Dr+gGJ7RVhZkhEPMzcj9oDW8ECgYEAzu2H
-MMtMFNnYKvFgLd3j2QuA1NbEaPVhCmoHtGYfbDouP14yZ45C9kjFdJlBNnbnVJrE
-X9IAWQ9TDw4CpVO7GPiKjpXZSNO1lt/lXIiKwD1Ba/DbT1AkdGIkWwk6CgvVfaWB
-qUQTUJe8KINx6Q9Mwzgb/VLmOSxjeY+rgGXRfq0CgYB6rNRi3t/N4JDgTVANJFBK
-f/1gF8gwX0hcEr35WeZjHYrDLG6Mgc46FU9AK4+iZXM+ZBn7Q16ogXjKFVafvode
-GmHJXueb1UIHJLaNh71j94+AZc+G+Bc+tnFnRHhswqW8MPEV3axDsN6xwfcSmjrw
-kQfKNAM5Glg76lKpVYHUgQKBgQCPY07LxAQLasz9LNeN0PVDAFKcqdneNTKySbjf
-C+j4UPSdGoPo+E50ZQbWfiAPQqOYH8q170oobJMMmpPAxl2etxMkLLgtW+64Bpvj
-3AXxokDEMFl4AzvPnfY9Uw5xybN9ZoOLrE2KCirrE/KKIfz6RdY3WwuHULf5k1Gv
-Hl7l3QKBgBcR8cb3VGU/my/7CZ73MQATRnUfbpyodi9pKtT84aeFFDbinTxpQXv0
-vQljxTCBDsQvppEO8p4I+AzeNo7/HLmU9R5ISnAaEZM0eNp6ZP0rkpQdXwm87FdM
-DhUdJ9VbSWrn+mQOlJKTBY4/19W7wEoA1Z2a3WwYljJU1l8v0hVQ
------END RSA PRIVATE KEY-----
+PEGAR AQUI LA LLAVE PRIVADA DEL DISPOSITIVO
 )EOF";
 
 // 4. INSTANCIAS DE CONEXIÓN
-// Creamos un objeto cliente seguro para gestionar las conexiones TLS y el cliente MQTT
-WiFiClientSecure net;
-PubSubClient client(net);
+WiFiClientSecure net;                           // Conexión segura que usa MQTT
+PubSubClient client(net);                       // Cliente MQTT sobre la conexión segura
 
 // 5. FUNCIÓN DE CONEXIÓN AL TÚNEL SEGURO
-void conectarAWS() {
-  // Desactivamos el modo de suspensión del Wi-Fi para asegurar una conexión estable
-  WiFi.setSleep(false);
-  // Iniciamos la conexión con la red Wi-Fi configurada
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  Serial.print("\n[WiFi] Conectando a red de soporte");
-  
-  // Bucle que se mantiene ejecutándose mientras el ESP32 logra conectarse al Wi-Fi
-  while (WiFi.status() != WL_CONNECTED) { 
-    delay(500); 
-    Serial.print("."); 
+void conectarAWS() {                            // Conecta al WiFi y luego a AWS IoT Core
+  WiFi.setSleep(false);                         // Evita que el WiFi se duerma, así la conexión es más estable
+  WiFi.begin(WIFI_SSID, WIFI_PASS);             // Intenta conectarse a la red
+  Serial.print("\n[WiFi] Conectando a red de soporte");  // Mensaje de conexión
+
+  while (WiFi.status() != WL_CONNECTED) {       // Espera hasta que conecte
+    delay(500);                                 // Medio segundo entre intentos
+    Serial.print(".");                          // Punto mientras espera
   }
-  Serial.println(" OK");
+  Serial.println(" OK");                        // Ya hay WiFi
 
-  // Cargamos en el cliente seguro los tres certificados necesarios para autenticarnos con AWS
-  net.setCACert(AWS_CERT_CA);
-  net.setCertificate(AWS_CERT_CRT);
-  net.setPrivateKey(AWS_CERT_PRIVATE);
+  net.setCACert(AWS_CERT_CA);                   // Carga el certificado de Amazon
+  net.setCertificate(AWS_CERT_CRT);             // Carga el certificado del dispositivo
+  net.setPrivateKey(AWS_CERT_PRIVATE);          // Carga la llave privada
 
-  // Configuramos el servidor MQTT indicando el Endpoint de AWS y el puerto seguro estándar (8883)
-  client.setServer(AWS_IOT_ENDPOINT, 8883);
+  client.setServer(AWS_IOT_ENDPOINT, 8883);     // Servidor de AWS IoT, puerto seguro de MQTT
 
-  Serial.print("[AWS] Negociando certificados TLS con Amazon...");
-  // Generamos un identificador de cliente único
-  String clientId = "ESP32_Mesa_" + String(random(0xffff), HEX);
+  Serial.print("[AWS] Negociando certificados TLS con Amazon...");  // Mensaje mientras valida los certificados
+  String clientId = "ESP32_Mesa_" + String(random(0xffff), HEX);  // Nombre de conexión con un número al azar
 
-  // Bucle de reintento que intenta establecer la conexión MQTT cifrada hasta lograrlo
-  while (!client.connect(clientId.c_str())) {
-    Serial.print(".");
-    delay(1000);
+  while (!client.connect(clientId.c_str())) {   // Intenta conectar hasta que lo logre
+    Serial.print(".");                          // Punto mientras espera
+    delay(1000);                                // Un segundo entre intentos
   }
-  
-  // Mensaje de éxito que confirma que el protocolo de seguridad y el enlace están activos
-  Serial.println("\n✅ TÚNEL ESTABLECIDO Y SEGURO.");
+
+  Serial.println("\nTÚNEL ESTABLECIDO Y SEGURO.");  // Ya quedó la conexión segura con AWS
 }
 
 // 6. CONFIGURACIÓN INICIAL (SETUP)
-void setup() {
-  // Inicializamos el puerto serial para visualizar mensajes de diagnóstico
-  Serial.begin(115200);
-  // Llamamos a nuestra función para levantar el Wi-Fi y establecer el túnel seguro con AWS
-  conectarAWS();
+void setup() {                                  // Se ejecuta una sola vez al encender
+  Serial.begin(115200);                         // Inicia el monitor serial
+  conectarAWS();                                // Conecta al WiFi y a AWS
 }
 
 // 7. BUCLE PRINCIPAL (LOOP)
-void loop() {
-  // Verificamos de forma continua si la conexión MQTT sigue activa; si se pierde, la reconectamos
-  if (!client.connected()) {
-    conectarAWS(); 
+void loop() {                                   // Se repite todo el tiempo
+  if (!client.connected()) {                    // Si se perdió la conexión con AWS
+    conectarAWS();                              // Vuelve a conectar
   }
-  // Mantenemos el proceso MQTT activo
-  client.loop(); 
+  client.loop();                                // Mantiene viva la conexión MQTT
 }
