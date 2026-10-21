@@ -53,6 +53,20 @@ const PASO_SEGURO_LONG = 25;
 // URL base del bucket S3 público donde están alojadas las imágenes de la interfaz
 const IMG_BASE = 'https://mesa-quirurgica-imagenes-946445280155.s3.us-east-1.amazonaws.com';
 
+// CAMBIO: función que indica si el dispositivo tiene pantalla APL
+function tieneAPL(handlerInput) {
+    // Devolvemos true si la interfaz APL está soportada por el dispositivo
+    return !!Alexa.getSupportedInterfaces(handlerInput.requestEnvelope)['Alexa.Presentation.APL'];
+}
+
+// CAMBIO: función que añade el reprompt solo si NO hay pantalla (en pantalla la sesión se mantiene abierta sin abrir el micrófono)
+function conReprompt(handlerInput, texto) {
+    // Si el dispositivo no tiene pantalla, añadimos el reprompt como antes
+    if (!tieneAPL(handlerInput)) handlerInput.responseBuilder.reprompt(texto);
+    // Devolvemos el responseBuilder para poder encadenar getResponse()
+    return handlerInput.responseBuilder;
+}
+
 // Mapa que asocia cada comando con la caja de imagen y el archivo que debe mostrar
 const MAPA_IMAGENES = {
     // Comando "subir" → caja imagenToF con archivo subir.png
@@ -194,7 +208,7 @@ const TelemetriaEventHandler = {
                     // Actualizamos el texto longitudinal
                     { type: 'SetValue', componentId: 'textoLong', property: 'text', value: longVal },
                     // Esperamos 150 ms antes de re-invocar el siguiente ciclo
-                    { type: 'Idle', delay: 150 },
+                    { type: 'Idle', delay: 1000 },
                     // Re-invocamos el mismo evento para mantener el bucle infinito
                     { type: 'SendEvent', arguments: ['SolicitarTelemetriaEnVivo'] }
                 ]
@@ -247,8 +261,10 @@ async function enviarOrdenMQTT(handlerInput, comando, valor, voz, visual) {
         return handlerInput.responseBuilder.speak('Fallo de comunicación.').getResponse();
     }
 
-    // Respondemos por voz confirmando la acción y dejando el micrófono abierto
-    return handlerInput.responseBuilder.speak(voz).reprompt(REPROMPT_TEXT).getResponse();
+    // Respondemos por voz confirmando la acción
+    handlerInput.responseBuilder.speak(voz);
+    // CAMBIO: con pantalla la sesión sigue abierta sin abrir el micrófono; sin pantalla se mantiene el reprompt de antes
+    return conReprompt(handlerInput, REPROMPT_TEXT).getResponse();
 }
 
 // Función auxiliar que publica el comando de paro al ESP32
@@ -336,14 +352,10 @@ const LaunchRequestHandler = {
                 ]
             });
         }
-        // Respondemos por voz dando la bienvenida y dejando el micrófono abierto
-        return handlerInput.responseBuilder
-            // Mensaje de bienvenida
-            .speak('Sistema de control de mesa quirúrgica activado.')
-            // Reprompt para mantener el micrófono abierto
-            .reprompt(REPROMPT_TEXT)
-            // Generamos la respuesta final
-            .getResponse();
+        // Respondemos por voz dando la bienvenida
+        handlerInput.responseBuilder.speak('Sistema de control de mesa quirúrgica activado.');
+        // CAMBIO: con pantalla la sesión sigue abierta sin abrir el micrófono; sin pantalla se mantiene el reprompt de antes
+        return conReprompt(handlerInput, REPROMPT_TEXT).getResponse();
     }
 };
 
@@ -695,13 +707,11 @@ const HelpIntentHandler = {
     // Maneja la petición listando los comandos disponibles
     handle(handlerInput) {
         // Respondemos por voz con la lista de comandos
-        return handlerInput.responseBuilder
+        handlerInput.responseBuilder
             // Mensaje de ayuda
-            .speak('Puedes controlar elevación, tilt, trendelenburg, fowler y deslizamiento cefalocaudal. Di paro de emergencia para detener todo.')
-            // Reprompt para mantener el micrófono abierto
-            .reprompt(REPROMPT_TEXT)
-            // Generamos la respuesta
-            .getResponse();
+            .speak('Puedes controlar elevación, tilt, trendelenburg, fowler y deslizamiento cefalocaudal. Di paro de emergencia para detener todo.');
+        // CAMBIO: con pantalla la sesión sigue abierta sin abrir el micrófono; sin pantalla se mantiene el reprompt de antes
+        return conReprompt(handlerInput, REPROMPT_TEXT).getResponse();
     }
 };
 
@@ -774,13 +784,11 @@ const ErrorHandler = {
         // Log del error en CloudWatch con el mensaje específico
         console.log(`[ERROR] ${error.message}`);
         // Respondemos por voz indicando que no se entendió
-        return handlerInput.responseBuilder
+        handlerInput.responseBuilder
             // Mensaje de error
-            .speak('No reconocí la instrucción.')
-            // Reprompt para mantener el micrófono abierto
-            .reprompt(REPROMPT_TEXT)
-            // Generamos la respuesta
-            .getResponse();
+            .speak('No reconocí la instrucción.');
+        // CAMBIO: con pantalla la sesión sigue abierta sin abrir el micrófono; sin pantalla se mantiene el reprompt de antes
+        return conReprompt(handlerInput, REPROMPT_TEXT).getResponse();
     }
 };
 
