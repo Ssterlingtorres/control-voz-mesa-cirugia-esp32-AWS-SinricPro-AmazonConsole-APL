@@ -1,255 +1,258 @@
-#include <WiFi.h>
-#include <SinricPro.h>
-#include <SinricProDevice.h>
-#include <Capabilities/RangeController.h> 
-#include <Capabilities/PowerStateController.h>
+#include <WiFi.h>                                   // Librería para conectar la ESP32 al WiFi
+#include <SinricPro.h>                              // Librería principal de Sinric Pro
+#include <SinricProDevice.h>                        // Permite crear dispositivos propios en Sinric Pro
+#include <Capabilities/RangeController.h>           // Capacidad para recibir valores numéricos desde Alexa
+#include <Capabilities/PowerStateController.h>      // Capacidad para recibir encendido y apagado desde Alexa
 
-#include <I2Cdev.h>
-#include <MPU6050.h>
-#include <Wire.h>
+#include <I2Cdev.h>                                 // Manejo de la comunicación I2C del sensor
+#include <MPU6050.h>                                // Librería del sensor MPU6050
+#include <Wire.h>                                   // Bus I2C de la ESP32
 
-// -------- WIFI --------
-#define WIFI_SSID     "vivo Y33s"
-#define WIFI_PASS     "Venom3y4"
+// WIFI
+// Datos de la red WiFi, se cambian por los de la red que se vaya a usar
+#define WIFI_SSID     "NOMBRE_DE_SU_RED"            // Nombre de la red WiFi
+#define WIFI_PASS     "CONTRASENA_DE_SU_RED"        // Contraseña de la red WiFi
 
-// -------- SINRIC CREDENCIALES --------
-#define APP_KEY       "adf99e2c-640d-46ab-88e1-002d8e563947"
-#define APP_SECRET    "649f7991-aceb-44ff-a7c3-681079b9fc3d-5116ba26-0bb4-4ba6-b5aa-e4c973ee8669"
+// SINRIC CREDENCIALES
+// Credenciales de Sinric Pro, son privadas y no se deben publicar
+#define APP_KEY       "SU_APP_KEY"                  // Llave de la cuenta en Sinric Pro
+#define APP_SECRET    "SU_APP_SECRET"               // Clave secreta de la cuenta en Sinric Pro
 
-// -------- DEVICE IDs ACTUALIZADOS --------
-#define DEVICE_ID_TREND  "69cb364d17b32c0941e01015"
-#define DEVICE_ID_TIL    "69cf3c50dafb005af4e2d875"
-#define DEVICE_ID_ALTURA "69cf22f9db0f6e0b15ac29ca"
+// DEVICE IDs ACTUALIZADOS
+// ID de cada dispositivo creado en Sinric Pro
+#define DEVICE_ID_TREND  "SU_DEVICE_ID_TREND"       // Dispositivo de Trendelenburg
+#define DEVICE_ID_TIL    "SU_DEVICE_ID_TILT"        // Dispositivo de tilt
+#define DEVICE_ID_ALTURA "SU_DEVICE_ID_ALTURA"      // Dispositivo de altura
 
-// -------- DISPOSITIVO CUSTOM --------
-class MesaCustom : public SinricProDevice, 
-                   public RangeController<MesaCustom>,
-                   public PowerStateController<MesaCustom> {
-  friend class RangeController<MesaCustom>;
-  friend class PowerStateController<MesaCustom>;
-public:
-  MesaCustom(const String &deviceId) : SinricProDevice(deviceId, "MesaCustom") {}
-};
+// DISPOSITIVO CUSTOM
+class MesaCustom : public SinricProDevice,          // Se crea el dispositivo mesa a partir de Sinric Pro
+                   public RangeController<MesaCustom>,  // con control de rango (valores numéricos)
+                   public PowerStateController<MesaCustom> {  // y con encendido y apagado
+  friend class RangeController<MesaCustom>;         // Deja que el control de rango acceda a la clase
+  friend class PowerStateController<MesaCustom>;    // Deja que el encendido y apagado acceda a la clase
+public:                                             // Lo siguiente se puede usar desde afuera
+  MesaCustom(const String &deviceId) : SinricProDevice(deviceId, "MesaCustom") {}  // Constructor, enlaza la mesa con su ID
+};                                                  // Fin de la clase
 
-// -------- SENSORES --------
-MPU6050 sensor;
-int16_t ax, ay, az;
+// SENSORES
+MPU6050 sensor;                                     // Objeto del sensor MPU6050
+int16_t ax, ay, az;                                 // Lecturas del acelerómetro en X, Y y Z
 
 // Pines para el Ultrasónico
-#define TRIG_PIN 13 
-#define ECHO_PIN 14 
+#define TRIG_PIN 13                                 // Pin que dispara el pulso del ultrasónico
+#define ECHO_PIN 14                                 // Pin que recibe el eco del ultrasónico
 
-// -------- PINES ACTUADORES --------
-int trendSubir = 2;
-int trendBajar = 4;
+// PINES ACTUADORES
+int trendSubir = 2;                                 // Salida para subir Trendelenburg
+int trendBajar = 4;                                 // Salida para bajar Trendelenburg
 
-int tilIzq = 18;
-int tilDer = 19;
+int tilIzq = 18;                                    // Salida para tilt izquierdo
+int tilDer = 19;                                    // Salida para tilt derecho
 
-int alturaSubir = 25; 
-int alturaBajar = 26; 
+int alturaSubir = 25;                               // Salida para subir la altura
+int alturaBajar = 26;                               // Salida para bajar la altura
 
-// -------- CONTROL DE METAS --------
-float objetivoX = 0;
-float objetivoY = 0;
-float objetivoAltura = 0;
+// CONTROL DE METAS
+float objetivoX = 0;                                // Ángulo pedido de Trendelenburg
+float objetivoY = 0;                                // Ángulo pedido de tilt
+float objetivoAltura = 0;                           // Altura pedida
 
-float margenAngulo = 3.0; // Grados
-float margenAltura = 2.0; // Centímetros
+float margenAngulo = 3.0;                           // Tolerancia en grados
+float margenAltura = 2.0;                           // Tolerancia en centímetros
 
-bool enMovimientoX = false;
-bool enMovimientoY = false;
-bool enMovimientoAltura = false;
+bool enMovimientoX = false;                         // Si Trendelenburg se está moviendo
+bool enMovimientoY = false;                         // Si el tilt se está moviendo
+bool enMovimientoAltura = false;                    // Si la altura se está moviendo
 
-float alturaActual = 0;
+float alturaActual = 0;                             // Altura medida por el ultrasónico
 
-unsigned long tiempoUltimoEco = 0;
-unsigned long tiempoUltimaImpresion = 0;
+unsigned long tiempoUltimoEco = 0;                  // Última vez que se midió con el ultrasónico
+unsigned long tiempoUltimaImpresion = 0;            // Última vez que se imprimió en el monitor serial
 
-// -------- CALLBACKS --------
-bool onPowerState(const String &deviceId, bool &state) {
-  Serial.printf("⚡ Power State %s -> %s\n", deviceId.c_str(), state ? "ON" : "OFF");
-  return true; 
+// CALLBACKS
+bool onPowerState(const String &deviceId, bool &state) {  // Se ejecuta cuando Alexa manda encender o apagar
+  Serial.printf("Power State %s -> %s\n", deviceId.c_str(), state ? "ON" : "OFF");  // Muestra qué dispositivo y si es ON u OFF
+  return true;                                      // Le confirma a Sinric Pro que se recibió bien
 }
 
-bool onRangeValue(const String &deviceId, const String& instance, float &value) {
+bool onRangeValue(const String &deviceId, const String& instance, float &value) {  // Se ejecuta cuando Alexa manda un valor
 
-  // -------- TREND --------
-  if (deviceId == DEVICE_ID_TREND) {
-    objetivoX = value;
-    enMovimientoX = true;
-    Serial.printf("🗣️ TREND solicitado -> %.1f°\n", value);
-    return true;
+  // TREND
+  if (deviceId == DEVICE_ID_TREND) {                // Si el valor es para Trendelenburg
+    objetivoX = value;                              // Guarda el ángulo pedido
+    enMovimientoX = true;                           // Arranca el movimiento
+    Serial.printf("TREND solicitado -> %.1f°\n", value);  // Muestra la orden recibida
+    return true;                                    // Confirma a Sinric Pro
   }
 
-  // -------- TIL --------
-  if (deviceId == DEVICE_ID_TIL) {
-    objetivoY = value;
-    enMovimientoY = true;
-    Serial.printf("🗣️ TIL solicitado -> %.1f°\n", value);
-    return true;
+  // TIL
+  if (deviceId == DEVICE_ID_TIL) {                  // Si el valor es para el tilt
+    objetivoY = value;                              // Guarda el ángulo pedido
+    enMovimientoY = true;                           // Arranca el movimiento
+    Serial.printf("TIL solicitado -> %.1f°\n", value);  // Muestra la orden recibida
+    return true;                                    // Confirma a Sinric Pro
   }
 
-  // -------- ALTURA --------
-  if (deviceId == DEVICE_ID_ALTURA) {
-    objetivoAltura = value;
-    enMovimientoAltura = true;
-    Serial.printf("🗣️ ALTURA solicitada -> %.1f cm\n", value);
-    return true;
+  // ALTURA
+  if (deviceId == DEVICE_ID_ALTURA) {               // Si el valor es para la altura
+    objetivoAltura = value;                         // Guarda la altura pedida
+    enMovimientoAltura = true;                      // Arranca el movimiento
+    Serial.printf("ALTURA solicitada -> %.1f cm\n", value);  // Muestra la orden recibida
+    return true;                                    // Confirma a Sinric Pro
   }
 
-  return false;
+  return false;                                     // Si no es ningún dispositivo conocido, no se hace nada
 }
 
-// -------- SETUP WIFI --------
-void setupWiFi() {
-  Serial.print("Conectando WiFi");
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
-    delay(500);
+// SETUP WIFI
+void setupWiFi() {                                  // Función para conectar al WiFi
+  Serial.print("Conectando WiFi");                  // Mensaje de inicio de conexión
+  WiFi.begin(WIFI_SSID, WIFI_PASS);                 // Intenta conectarse con la red y la clave
+  while (WiFi.status() != WL_CONNECTED) {           // Espera hasta que se conecte
+    Serial.print(".");                              // Imprime un punto mientras espera
+    delay(500);                                     // Espera medio segundo entre intentos
   }
-  Serial.println("\n✅ WiFi conectado");
+  Serial.println("\nWiFi conectado");               // Avisa que ya hay conexión
 }
 
-// -------- SETUP --------
-void setup() {
-  Serial.begin(115200); 
-  Serial.println("\n--- Iniciando Sistema Quirúrgico ---");
+// SETUP
+void setup() {                                      // Se ejecuta una sola vez al encender
+  Serial.begin(115200);                             // Inicia el monitor serial
+  Serial.println("\n--- Iniciando Sistema Quirúrgico ---");  // Mensaje de arranque
 
-  pinMode(trendSubir, OUTPUT);
-  pinMode(trendBajar, OUTPUT);
-  pinMode(tilIzq, OUTPUT);
-  pinMode(tilDer, OUTPUT);
-  pinMode(alturaSubir, OUTPUT);
-  pinMode(alturaBajar, OUTPUT);
+  pinMode(trendSubir, OUTPUT);                      // Salida para subir Trendelenburg
+  pinMode(trendBajar, OUTPUT);                      // Salida para bajar Trendelenburg
+  pinMode(tilIzq, OUTPUT);                          // Salida para tilt izquierdo
+  pinMode(tilDer, OUTPUT);                          // Salida para tilt derecho
+  pinMode(alturaSubir, OUTPUT);                     // Salida para subir la altura
+  pinMode(alturaBajar, OUTPUT);                     // Salida para bajar la altura
 
-  pinMode(TRIG_PIN, OUTPUT);
-  pinMode(ECHO_PIN, INPUT);
+  pinMode(TRIG_PIN, OUTPUT);                        // El TRIG del ultrasónico es salida
+  pinMode(ECHO_PIN, INPUT);                         // El ECHO del ultrasónico es entrada
 
-  Wire.begin(21, 22);
-  sensor.initialize();
+  Wire.begin(21, 22);                               // I2C en los pines 21 (SDA) y 22 (SCL)
+  sensor.initialize();                              // Arranca el MPU6050
 
-  if (sensor.testConnection()) {
-    Serial.println("✅ MPU6050 OK");
-  } else {
-    Serial.println("❌ MPU6050 ERROR");
+  if (sensor.testConnection()) {                    // Revisa si el sensor responde
+    Serial.println("MPU6050 OK");                   // El sensor está bien conectado
+  } else {                                          // Si no responde
+    Serial.println("MPU6050 ERROR");                // Avisa que hay un problema con el sensor
   }
 
-  setupWiFi();
+  setupWiFi();                                      // Conecta la ESP32 al WiFi
 
-  // -------- CREAR DISPOSITIVOS --------
-  MesaCustom &trend  = SinricPro[DEVICE_ID_TREND];
-  MesaCustom &til    = SinricPro[DEVICE_ID_TIL];
-  MesaCustom &altura = SinricPro[DEVICE_ID_ALTURA];
+  // CREAR DISPOSITIVOS
+  MesaCustom &trend  = SinricPro[DEVICE_ID_TREND];  // Crea el dispositivo de Trendelenburg
+  MesaCustom &til    = SinricPro[DEVICE_ID_TIL];    // Crea el dispositivo de tilt
+  MesaCustom &altura = SinricPro[DEVICE_ID_ALTURA];  // Crea el dispositivo de altura
 
-  trend.onRangeValue("angulo", onRangeValue);
-  til.onRangeValue("angulo", onRangeValue);
-  altura.onRangeValue("altura", onRangeValue); 
-  
-  trend.onPowerState(onPowerState);
-  til.onPowerState(onPowerState);
-  altura.onPowerState(onPowerState);
+  trend.onRangeValue("angulo", onRangeValue);       // Cuando llegue un ángulo de Trendelenburg, llama a onRangeValue
+  til.onRangeValue("angulo", onRangeValue);         // Cuando llegue un ángulo de tilt, llama a onRangeValue
+  altura.onRangeValue("altura", onRangeValue);      // Cuando llegue una altura, llama a onRangeValue
 
-  SinricPro.onConnected([](){ Serial.println("✅ Conectado a Servidores SinricPro/Alexa"); });
-  SinricPro.onDisconnected([](){ Serial.println("❌ Desconectado de SinricPro"); });
+  trend.onPowerState(onPowerState);                 // Encendido y apagado de Trendelenburg
+  til.onPowerState(onPowerState);                   // Encendido y apagado de tilt
+  altura.onPowerState(onPowerState);                // Encendido y apagado de altura
 
-  SinricPro.begin(APP_KEY, APP_SECRET);
+  SinricPro.onConnected([](){ Serial.println("Conectado a Servidores SinricPro/Alexa"); });  // Mensaje cuando se conecta
+  SinricPro.onDisconnected([](){ Serial.println("Desconectado de SinricPro"); });  // Mensaje cuando se desconecta
+
+  SinricPro.begin(APP_KEY, APP_SECRET);             // Inicia Sinric Pro con las credenciales
 }
 
-// -------- LOOP --------
-void loop() {
-  SinricPro.handle();
+// LOOP
+void loop() {                                       // Se repite todo el tiempo
+  SinricPro.handle();                               // Mantiene la conexión y recibe órdenes de Alexa
 
-  // -------- LEER ACELERÓMETRO --------
-  sensor.getAcceleration(&ax, &ay, &az);
-  float angX = atan(ax / sqrt(pow((float)ay, 2) + pow((float)az, 2))) * (180.0 / 3.1416);
-  float angY = atan(ay / sqrt(pow((float)ax, 2) + pow((float)az, 2))) * (180.0 / 3.1416);
+  // LEER ACELERÓMETRO
+  sensor.getAcceleration(&ax, &ay, &az);            // Lee la aceleración en los tres ejes
+  float angX = atan(ax / sqrt(pow((float)ay, 2) + pow((float)az, 2))) * (180.0 / 3.1416);  // Inclinación en X (Trendelenburg) en grados
+  float angY = atan(ay / sqrt(pow((float)ax, 2) + pow((float)az, 2))) * (180.0 / 3.1416);  // Inclinación en Y (tilt) en grados
 
-  // -------- LEER SENSOR ULTRASÓNICO (cada 50ms) --------
-  if (millis() - tiempoUltimoEco > 50) {
-    digitalWrite(TRIG_PIN, LOW);
-    delayMicroseconds(2);
-    digitalWrite(TRIG_PIN, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(TRIG_PIN, LOW);
+  // LEER SENSOR ULTRASÓNICO (cada 50 ms)
+  if (millis() - tiempoUltimoEco > 50) {            // Mide cada 50 ms
+    digitalWrite(TRIG_PIN, LOW);                    // Deja el TRIG en bajo
+    delayMicroseconds(2);                           // Espera corta para limpiar
+    digitalWrite(TRIG_PIN, HIGH);                   // Manda el pulso
+    delayMicroseconds(10);                          // El pulso dura 10 microsegundos
+    digitalWrite(TRIG_PIN, LOW);                    // Termina el pulso
 
-    long duracion = pulseIn(ECHO_PIN, HIGH, 20000); 
-    if (duracion > 0) {
-      alturaActual = duracion * 0.034 / 2;
+    long duracion = pulseIn(ECHO_PIN, HIGH, 20000);  // Mide cuánto tarda en volver el eco, máximo 20 ms
+    if (duracion > 0) {                             // Si llegó el eco
+      alturaActual = duracion * 0.034 / 2;          // Pasa el tiempo a centímetros (ida y vuelta)
     }
-    tiempoUltimoEco = millis();
+    tiempoUltimoEco = millis();                     // Guarda cuándo se midió
   }
 
-  // -------- CONTROL TREND --------
-  bool enRangoX = (angX >= (objetivoX - margenAngulo) && angX <= (objetivoX + margenAngulo));
+  // CONTROL TREND
+  bool enRangoX = (angX >= (objetivoX - margenAngulo) && angX <= (objetivoX + margenAngulo));  // Revisa si el ángulo está dentro del margen
 
-  if (enMovimientoX) {
-    if (enRangoX) {
-      digitalWrite(trendSubir, LOW);
-      digitalWrite(trendBajar, LOW);
-      enMovimientoX = false;
-      Serial.println("✅ Posición Trendelenburg alcanzada");
-    } else if (angX < objetivoX) {
-      digitalWrite(trendSubir, HIGH);
-      digitalWrite(trendBajar, LOW);
-    } else {
-      digitalWrite(trendSubir, LOW);
-      digitalWrite(trendBajar, HIGH);
+  if (enMovimientoX) {                              // Si hay una orden de Trendelenburg
+    if (enRangoX) {                                 // Si ya llegó
+      digitalWrite(trendSubir, LOW);                // Apaga subir
+      digitalWrite(trendBajar, LOW);                // Apaga bajar
+      enMovimientoX = false;                        // Termina el movimiento
+      Serial.println("Posición Trendelenburg alcanzada");  // Avisa que llegó
+    } else if (angX < objetivoX) {                  // Si le falta
+      digitalWrite(trendSubir, HIGH);               // Sube
+      digitalWrite(trendBajar, LOW);                // Asegura que bajar esté apagado
+    } else {                                        // Si se pasó
+      digitalWrite(trendSubir, LOW);                // Asegura que subir esté apagado
+      digitalWrite(trendBajar, HIGH);               // Baja
     }
-  } else {
-    digitalWrite(trendSubir, LOW);
-    digitalWrite(trendBajar, LOW);
+  } else {                                          // Si no hay orden
+    digitalWrite(trendSubir, LOW);                  // Todo apagado
+    digitalWrite(trendBajar, LOW);                  // Todo apagado
   }
 
-  // -------- CONTROL TIL --------
-  bool enRangoY = (angY >= (objetivoY - margenAngulo) && angY <= (objetivoY + margenAngulo));
+  // CONTROL TIL
+  bool enRangoY = (angY >= (objetivoY - margenAngulo) && angY <= (objetivoY + margenAngulo));  // Revisa si el ángulo está dentro del margen
 
-  if (enMovimientoY) {
-    if (enRangoY) {
-      digitalWrite(tilIzq, LOW);
-      digitalWrite(tilDer, LOW);
-      enMovimientoY = false;
-      Serial.println("✅ Posición Til alcanzada");
-    } else if (angY < objetivoY) {
-      digitalWrite(tilIzq, HIGH);
-      digitalWrite(tilDer, LOW);
-    } else {
-      digitalWrite(tilIzq, LOW);
-      digitalWrite(tilDer, HIGH);
+  if (enMovimientoY) {                              // Si hay una orden de tilt
+    if (enRangoY) {                                 // Si ya llegó
+      digitalWrite(tilIzq, LOW);                    // Apaga izquierda
+      digitalWrite(tilDer, LOW);                    // Apaga derecha
+      enMovimientoY = false;                        // Termina el movimiento
+      Serial.println("Posición Til alcanzada");     // Avisa que llegó
+    } else if (angY < objetivoY) {                  // Si le falta
+      digitalWrite(tilIzq, HIGH);                   // Inclina a la izquierda
+      digitalWrite(tilDer, LOW);                    // Asegura que derecha esté apagado
+    } else {                                        // Si se pasó
+      digitalWrite(tilIzq, LOW);                    // Asegura que izquierda esté apagado
+      digitalWrite(tilDer, HIGH);                   // Inclina a la derecha
     }
-  } else {
-    digitalWrite(tilIzq, LOW);
-    digitalWrite(tilDer, LOW);
+  } else {                                          // Si no hay orden
+    digitalWrite(tilIzq, LOW);                      // Todo apagado
+    digitalWrite(tilDer, LOW);                      // Todo apagado
   }
 
-  // -------- CONTROL ALTURA --------
-  bool enRangoAltura = (alturaActual >= (objetivoAltura - margenAltura) && alturaActual <= (objetivoAltura + margenAltura));
+  // CONTROL ALTURA
+  bool enRangoAltura = (alturaActual >= (objetivoAltura - margenAltura) && alturaActual <= (objetivoAltura + margenAltura));  // Revisa si la altura está dentro del margen
 
-  if (enMovimientoAltura && alturaActual > 0) { 
-    if (enRangoAltura) {
-      digitalWrite(alturaSubir, LOW);
-      digitalWrite(alturaBajar, LOW);
-      enMovimientoAltura = false;
-      Serial.println("✅ Posición Altura alcanzada");
-    } else if (alturaActual < objetivoAltura) {
-      digitalWrite(alturaSubir, HIGH); 
-      digitalWrite(alturaBajar, LOW);
-    } else {
-      digitalWrite(alturaSubir, LOW);
-      digitalWrite(alturaBajar, HIGH); 
+  if (enMovimientoAltura && alturaActual > 0) {     // Si hay orden de altura y el sensor tiene lectura
+    if (enRangoAltura) {                            // Si ya llegó
+      digitalWrite(alturaSubir, LOW);               // Apaga subir
+      digitalWrite(alturaBajar, LOW);               // Apaga bajar
+      enMovimientoAltura = false;                   // Termina el movimiento
+      Serial.println("Posición Altura alcanzada");  // Avisa que llegó
+    } else if (alturaActual < objetivoAltura) {     // Si le falta
+      digitalWrite(alturaSubir, HIGH);              // Sube
+      digitalWrite(alturaBajar, LOW);               // Asegura que bajar esté apagado
+    } else {                                        // Si se pasó
+      digitalWrite(alturaSubir, LOW);               // Asegura que subir esté apagado
+      digitalWrite(alturaBajar, HIGH);              // Baja
     }
-  } else {
-    digitalWrite(alturaSubir, LOW);
-    digitalWrite(alturaBajar, LOW);
+  } else {                                          // Si no hay orden
+    digitalWrite(alturaSubir, LOW);                 // Todo apagado
+    digitalWrite(alturaBajar, LOW);                 // Todo apagado
   }
 
-  // -------- MONITOR SERIAL (Datos en vivo) --------
-  if (millis() - tiempoUltimaImpresion > 500) {
-    Serial.printf("X: %.1f° (Obj: %.1f°) | Y: %.1f° (Obj: %.1f°) | Altura: %.1f cm (Obj: %.1f cm)\n", 
-                  angX, objetivoX, angY, objetivoY, alturaActual, objetivoAltura);
-    tiempoUltimaImpresion = millis();
+  // MONITOR SERIAL (datos en vivo)
+  if (millis() - tiempoUltimaImpresion > 500) {     // Imprime cada medio segundo
+    Serial.printf("X: %.1f° (Obj: %.1f°) | Y: %.1f° (Obj: %.1f°) | Altura: %.1f cm (Obj: %.1f cm)\n",  // Formato del mensaje con valores medidos y pedidos
+                  angX, objetivoX, angY, objetivoY, alturaActual, objetivoAltura);  // Valores que se imprimen
+    tiempoUltimaImpresion = millis();               // Guarda el momento de esta impresión
   }
 
-  delay(10);
+  delay(10);                                        // Pausa corta para no saturar la ESP32
 }
