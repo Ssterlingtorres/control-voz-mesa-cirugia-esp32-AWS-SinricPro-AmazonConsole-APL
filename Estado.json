@@ -1,404 +1,388 @@
 {
-    "document": {
-        "type": "APL",
-        "version": "2023.2",
-        "theme": "dark",
-        "import": [
-            {
-                "name": "alexa-layouts",
-                "version": "1.7.0"
-            }
+    "type": "APL",
+    "version": "2023.2",
+    "theme": "dark",
+    "import": [
+        {
+            "name": "alexa-layouts",
+            "version": "1.7.0"
+        }
+    ],
+    "mainTemplate": {
+        "parameters": [
+            "payload"
         ],
-        "mainTemplate": {
-            "parameters": [
-                "payload"
-            ],
-            "items": [
-                {
-                    "type": "Container",
-                    "id": "rootContainer",
-                    "width": "100%",
-                    "height": "100%",
-                    "backgroundColor": "#030B14",
-                    "onMount": [
-                        {
-                            "type": "Sequential",
-                            "commands": [
-                                {
-                                    "type": "Idle",
-                                    "delay": 500
-                                },
-                                {
-                                    "type": "SendEvent",
-                                    "arguments": [
-                                        "SolicitarTelemetriaEnVivo"
-                                    ]
-                                }
-                            ]
-                        }
-                    ],
-                    "items": [
-                        {
-                            "type": "Image",
-                            "id": "imagenFondo",
-                            "source": "https://mesa-quirurgica-imagenes-946445280155.s3.us-east-1.amazonaws.com/espera.jpg",
-                            "width": "100%",
-                            "height": "100%",
-                            "position": "absolute",
-                            "scale": "best-fill",
-                            "opacity": 0.35
-                        },
-                        {
-                            "type": "Container",
-                            "width": "100%",
-                            "height": "100%",
-                            "padding": "3vw",
-                            "justifyContent": "spaceBetween",
-                            "items": [
-                                {
-                                    "type": "Container",
-                                    "direction": "row",
-                                    "justifyContent": "spaceBetween",
-                                    "alignItems": "center",
-                                    "items": [
-                                        {
-                                            "type": "Text",
-                                            "text": "MONITOR QUIRÚRGICO CRÍTICO",
-                                            "color": "#00F0FF",
-                                            "fontSize": "3.5vh",
-                                            "fontWeight": "300",
-                                            "letterSpacing": 3
-                                        },
-                                        {
-                                            "type": "Frame",
-                                            "backgroundColor": "rgba(0, 230, 118, 0.15)",
-                                            "borderRadius": "6dp",
-                                            "paddingTop": "0.8vh",
-                                            "paddingBottom": "0.8vh",
-                                            "paddingLeft": "1.5vw",
-                                            "paddingRight": "1.5vw",
-                                            "items": [
-                                                {
-                                                    "type": "Text",
-                                                    "text": "● SINCRONIZACIÓN ACTIVA",
-                                                    "color": "#00E676",
-                                                    "fontSize": "2vh",
-                                                    "fontWeight": "bold"
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "Frame",
-                                    "width": "100%",
-                                    "height": "15vh",
-                                    "backgroundColor": "rgba(0,0,0,0.55)",
-                                    "borderRadius": "12dp",
-                                    "borderWidth": "1dp",
-                                    "borderColor": "rgba(0, 240, 255, 0.2)",
-                                    "justifyContent": "center",
-                                    "alignItems": "center",
-                                    "items": [
-                                        {
-                                            "type": "Text",
-                                            "id": "textoAccion",
-                                            "text": "${payload.datosMesa.accion || 'SISTEMA EN ESPERA'}",
-                                            "fontSize": "6.5vh",
-                                            "color": "#00E676",
-                                            "fontWeight": "900",
-                                            "textAlign": "center"
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "Container",
-                                    "direction": "row",
-                                    "width": "100%",
-                                    "justifyContent": "spaceBetween",
-                                    "items": [
-                                        {
-                                            "type": "Container",
-                                            "width": "18%",
-                                            "alignItems": "center",
-                                            "items": [
-                                                {
-                                                    "type": "Text",
-                                                    "text": "ALTURA (Z)",
-                                                    "color": "#64748B",
-                                                    "fontSize": "2.2vh",
-                                                    "fontWeight": "bold"
-                                                },
-                                                {
-                                                    "type": "Text",
-                                                    "id": "textoToF",
-                                                    "text": "${payload.datosMesa.valorToF || '---'}",
-                                                    "fontSize": "7vh",
-                                                    "color": "#FFFFFF",
-                                                    "fontWeight": "800"
-                                                },
-                                                {
-                                                    "type": "Text",
-                                                    "text": "MILÍMETROS",
-                                                    "color": "#64748B",
-                                                    "fontSize": "1.9vh"
-                                                },
-                                                {
-                                                    "type": "Frame",
-                                                    "width": "100%",
-                                                    "height": "12vh",
-                                                    "backgroundColor": "rgba(0,0,0,0.45)",
-                                                    "borderRadius": "8dp",
-                                                    "marginTop": "1vh",
-                                                    "justifyContent": "center",
-                                                    "alignItems": "center",
-                                                    "items": [
-                                                        {
-                                                            "type": "Image",
-                                                            "id": "imagenToF",
-                                                            "source": "https://mesa-quirurgica-imagenes-946445280155.s3.us-east-1.amazonaws.com/subir.png",
-                                                            "width": "95%",
-                                                            "height": "95%",
-                                                            "scale": "best-fit",
-                                                            "opacity": 0.35
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "type": "Container",
-                                            "width": "18%",
-                                            "alignItems": "center",
-                                            "items": [
-                                                {
-                                                    "type": "Text",
-                                                    "text": "TILT LATERAL",
-                                                    "color": "#64748B",
-                                                    "fontSize": "2.2vh",
-                                                    "fontWeight": "bold"
-                                                },
-                                                {
-                                                    "type": "Text",
-                                                    "id": "textoTilt",
-                                                    "text": "${payload.datosMesa.valorTilt || '---'}",
-                                                    "fontSize": "7vh",
-                                                    "color": "#00F0FF",
-                                                    "fontWeight": "800"
-                                                },
-                                                {
-                                                    "type": "Text",
-                                                    "text": "GRADOS (°)",
-                                                    "color": "#64748B",
-                                                    "fontSize": "1.9vh"
-                                                },
-                                                {
-                                                    "type": "Frame",
-                                                    "width": "100%",
-                                                    "height": "12vh",
-                                                    "backgroundColor": "rgba(0,0,0,0.45)",
-                                                    "borderRadius": "8dp",
-                                                    "marginTop": "1vh",
-                                                    "justifyContent": "center",
-                                                    "alignItems": "center",
-                                                    "items": [
-                                                        {
-                                                            "type": "Image",
-                                                            "id": "imagenTilt",
-                                                            "source": "https://mesa-quirurgica-imagenes-946445280155.s3.us-east-1.amazonaws.com/tilt_der.png",
-                                                            "width": "95%",
-                                                            "height": "95%",
-                                                            "scale": "best-fit",
-                                                            "opacity": 0.35
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "type": "Container",
-                                            "width": "18%",
-                                            "alignItems": "center",
-                                            "items": [
-                                                {
-                                                    "type": "Text",
-                                                    "text": "TRENDELENBURG",
-                                                    "color": "#64748B",
-                                                    "fontSize": "2.2vh",
-                                                    "fontWeight": "bold"
-                                                },
-                                                {
-                                                    "type": "Text",
-                                                    "id": "textoTren",
-                                                    "text": "${payload.datosMesa.valorTren || '---'}",
-                                                    "fontSize": "7vh",
-                                                    "color": "#FFD54F",
-                                                    "fontWeight": "800"
-                                                },
-                                                {
-                                                    "type": "Text",
-                                                    "text": "GRADOS (°)",
-                                                    "color": "#64748B",
-                                                    "fontSize": "1.9vh"
-                                                },
-                                                {
-                                                    "type": "Frame",
-                                                    "width": "100%",
-                                                    "height": "12vh",
-                                                    "backgroundColor": "rgba(0,0,0,0.45)",
-                                                    "borderRadius": "8dp",
-                                                    "marginTop": "1vh",
-                                                    "justifyContent": "center",
-                                                    "alignItems": "center",
-                                                    "items": [
-                                                        {
-                                                            "type": "Image",
-                                                            "id": "imagenTren",
-                                                            "source": "https://mesa-quirurgica-imagenes-946445280155.s3.us-east-1.amazonaws.com/tren.png",
-                                                            "width": "95%",
-                                                            "height": "95%",
-                                                            "scale": "best-fit",
-                                                            "opacity": 0.35
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "type": "Container",
-                                            "width": "18%",
-                                            "alignItems": "center",
-                                            "items": [
-                                                {
-                                                    "type": "Text",
-                                                    "text": "FOWLER",
-                                                    "color": "#64748B",
-                                                    "fontSize": "2.2vh",
-                                                    "fontWeight": "bold"
-                                                },
-                                                {
-                                                    "type": "Text",
-                                                    "id": "textoFowler",
-                                                    "text": "${payload.datosMesa.valorFowler || '---'}",
-                                                    "fontSize": "7vh",
-                                                    "color": "#81C784",
-                                                    "fontWeight": "800"
-                                                },
-                                                {
-                                                    "type": "Text",
-                                                    "text": "GRADOS (°)",
-                                                    "color": "#64748B",
-                                                    "fontSize": "1.9vh"
-                                                },
-                                                {
-                                                    "type": "Frame",
-                                                    "width": "100%",
-                                                    "height": "12vh",
-                                                    "backgroundColor": "rgba(0,0,0,0.45)",
-                                                    "borderRadius": "8dp",
-                                                    "marginTop": "1vh",
-                                                    "justifyContent": "center",
-                                                    "alignItems": "center",
-                                                    "items": [
-                                                        {
-                                                            "type": "Image",
-                                                            "id": "imagenFowler",
-                                                            "source": "https://mesa-quirurgica-imagenes-946445280155.s3.us-east-1.amazonaws.com/fowler.png",
-                                                            "width": "95%",
-                                                            "height": "95%",
-                                                            "scale": "best-fit",
-                                                            "opacity": 0.35
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "type": "Container",
-                                            "width": "18%",
-                                            "alignItems": "center",
-                                            "items": [
-                                                {
-                                                    "type": "Text",
-                                                    "text": "LONGITUDINAL",
-                                                    "color": "#64748B",
-                                                    "fontSize": "2.2vh",
-                                                    "fontWeight": "bold"
-                                                },
-                                                {
-                                                    "type": "Text",
-                                                    "id": "textoLong",
-                                                    "text": "${payload.datosMesa.valorLong || '---'}",
-                                                    "fontSize": "7vh",
-                                                    "color": "#64B5F6",
-                                                    "fontWeight": "800"
-                                                },
-                                                {
-                                                    "type": "Text",
-                                                    "text": "MILÍMETROS",
-                                                    "color": "#64748B",
-                                                    "fontSize": "1.9vh"
-                                                },
-                                                {
-                                                    "type": "Frame",
-                                                    "width": "100%",
-                                                    "height": "12vh",
-                                                    "backgroundColor": "rgba(0,0,0,0.45)",
-                                                    "borderRadius": "8dp",
-                                                    "marginTop": "1vh",
-                                                    "justifyContent": "center",
-                                                    "alignItems": "center",
-                                                    "items": [
-                                                        {
-                                                            "type": "Image",
-                                                            "id": "imagenLong",
-                                                            "source": "https://mesa-quirurgica-imagenes-946445280155.s3.us-east-1.amazonaws.com/cefalico.png",
-                                                            "width": "95%",
-                                                            "height": "95%",
-                                                            "scale": "best-fit",
-                                                            "opacity": 0.35
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "Container",
-                                    "direction": "row",
-                                    "justifyContent": "spaceBetween",
-                                    "items": [
-                                        {
-                                            "type": "Text",
-                                            "text": "ARQUITECTURA: ESP32-S3 FreeRTOS | AWS IoT Shadow",
-                                            "color": "#334155",
-                                            "fontSize": "1.8vh"
-                                        },
-                                        {
-                                            "type": "Text",
-                                            "id": "textoStatus",
-                                            "text": "CICLO SÍNCRONO ACTIVO",
-                                            "color": "#334155",
-                                            "fontSize": "1.8vh"
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }
-    },
-    "datasources": {
-        "payload": {
-            "datosMesa": {
-                "accion": "SISTEMA EN ESPERA",
-                "valorToF": "15 mm",
-                "valorMPU": "5°"
+        "items": [
+            {
+                "type": "Container",
+                "id": "rootContainer",
+                "width": "100%",
+                "height": "100%",
+                "backgroundColor": "#030B14",
+                "handleTick": [
+                    {
+                        "minimumDelay": 1000,
+                        "commands": [
+                            {
+                                "type": "SendEvent",
+                                "arguments": [
+                                    "SolicitarTelemetriaEnVivo"
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "items": [
+                    {
+                        "type": "Image",
+                        "id": "imagenFondo",
+                        "source": "https://mesa-quirurgica-imagenes-946445280155.s3.us-east-1.amazonaws.com/espera.jpg",
+                        "width": "100%",
+                        "height": "100%",
+                        "position": "absolute",
+                        "scale": "best-fill",
+                        "opacity": 0.35
+                    },
+                    {
+                        "type": "Container",
+                        "width": "100%",
+                        "height": "100%",
+                        "padding": "3vw",
+                        "justifyContent": "spaceBetween",
+                        "items": [
+                            {
+                                "type": "Container",
+                                "direction": "row",
+                                "justifyContent": "spaceBetween",
+                                "alignItems": "center",
+                                "items": [
+                                    {
+                                        "type": "Text",
+                                        "text": "MONITOR QUIRÚRGICO",
+                                        "color": "#00F0FF",
+                                        "fontSize": "3.5vh",
+                                        "fontWeight": "300",
+                                        "letterSpacing": 3
+                                    },
+                                    {
+                                        "type": "Frame",
+                                        "backgroundColor": "rgba(0, 230, 118, 0.15)",
+                                        "borderRadius": "6dp",
+                                        "paddingTop": "0.8vh",
+                                        "paddingBottom": "0.8vh",
+                                        "paddingLeft": "1.5vw",
+                                        "paddingRight": "1.5vw",
+                                        "items": [
+                                            {
+                                                "type": "Text",
+                                                "text": "● SINCRONIZACIÓN ACTIVA",
+                                                "color": "#00E676",
+                                                "fontSize": "2vh",
+                                                "fontWeight": "bold"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "Frame",
+                                "width": "100%",
+                                "height": "15vh",
+                                "backgroundColor": "rgba(0,0,0,0.55)",
+                                "borderRadius": "12dp",
+                                "borderWidth": "1dp",
+                                "borderColor": "rgba(0, 240, 255, 0.2)",
+                                "justifyContent": "center",
+                                "alignItems": "center",
+                                "items": [
+                                    {
+                                        "type": "Text",
+                                        "id": "textoAccion",
+                                        "text": "${payload.datosMesa.accion || 'SISTEMA EN ESPERA'}",
+                                        "fontSize": "6.5vh",
+                                        "color": "#00E676",
+                                        "fontWeight": "900",
+                                        "textAlign": "center"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "Container",
+                                "direction": "row",
+                                "width": "100%",
+                                "justifyContent": "spaceBetween",
+                                "items": [
+                                    {
+                                        "type": "Container",
+                                        "width": "18%",
+                                        "alignItems": "center",
+                                        "items": [
+                                            {
+                                                "type": "Text",
+                                                "text": "ALTURA (Z)",
+                                                "color": "#64748B",
+                                                "fontSize": "2.2vh",
+                                                "fontWeight": "bold"
+                                            },
+                                            {
+                                                "type": "Text",
+                                                "id": "textoToF",
+                                                "text": "${payload.datosMesa.valorToF || '---'}",
+                                                "fontSize": "7vh",
+                                                "color": "#FFFFFF",
+                                                "fontWeight": "800"
+                                            },
+                                            {
+                                                "type": "Text",
+                                                "text": "MILÍMETROS",
+                                                "color": "#64748B",
+                                                "fontSize": "1.9vh"
+                                            },
+                                            {
+                                                "type": "Frame",
+                                                "width": "100%",
+                                                "height": "12vh",
+                                                "backgroundColor": "rgba(0,0,0,0.45)",
+                                                "borderRadius": "8dp",
+                                                "marginTop": "1vh",
+                                                "justifyContent": "center",
+                                                "alignItems": "center",
+                                                "items": [
+                                                    {
+                                                        "type": "Image",
+                                                        "id": "imagenToF",
+                                                        "source": "https://mesa-quirurgica-imagenes-946445280155.s3.us-east-1.amazonaws.com/subir.png",
+                                                        "width": "95%",
+                                                        "height": "95%",
+                                                        "scale": "best-fit",
+                                                        "opacity": 0.35
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "Container",
+                                        "width": "18%",
+                                        "alignItems": "center",
+                                        "items": [
+                                            {
+                                                "type": "Text",
+                                                "text": "TILT LATERAL",
+                                                "color": "#64748B",
+                                                "fontSize": "2.2vh",
+                                                "fontWeight": "bold"
+                                            },
+                                            {
+                                                "type": "Text",
+                                                "id": "textoTilt",
+                                                "text": "${payload.datosMesa.valorTilt || '---'}",
+                                                "fontSize": "7vh",
+                                                "color": "#00F0FF",
+                                                "fontWeight": "800"
+                                            },
+                                            {
+                                                "type": "Text",
+                                                "text": "GRADOS (°)",
+                                                "color": "#64748B",
+                                                "fontSize": "1.9vh"
+                                            },
+                                            {
+                                                "type": "Frame",
+                                                "width": "100%",
+                                                "height": "12vh",
+                                                "backgroundColor": "rgba(0,0,0,0.45)",
+                                                "borderRadius": "8dp",
+                                                "marginTop": "1vh",
+                                                "justifyContent": "center",
+                                                "alignItems": "center",
+                                                "items": [
+                                                    {
+                                                        "type": "Image",
+                                                        "id": "imagenTilt",
+                                                        "source": "https://mesa-quirurgica-imagenes-946445280155.s3.us-east-1.amazonaws.com/tilt_der.png",
+                                                        "width": "95%",
+                                                        "height": "95%",
+                                                        "scale": "best-fit",
+                                                        "opacity": 0.35
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "Container",
+                                        "width": "18%",
+                                        "alignItems": "center",
+                                        "items": [
+                                            {
+                                                "type": "Text",
+                                                "text": "TRENDELENBURG",
+                                                "color": "#64748B",
+                                                "fontSize": "2.2vh",
+                                                "fontWeight": "bold"
+                                            },
+                                            {
+                                                "type": "Text",
+                                                "id": "textoTren",
+                                                "text": "${payload.datosMesa.valorTren || '---'}",
+                                                "fontSize": "7vh",
+                                                "color": "#FFD54F",
+                                                "fontWeight": "800"
+                                            },
+                                            {
+                                                "type": "Text",
+                                                "text": "GRADOS (°)",
+                                                "color": "#64748B",
+                                                "fontSize": "1.9vh"
+                                            },
+                                            {
+                                                "type": "Frame",
+                                                "width": "100%",
+                                                "height": "12vh",
+                                                "backgroundColor": "rgba(0,0,0,0.45)",
+                                                "borderRadius": "8dp",
+                                                "marginTop": "1vh",
+                                                "justifyContent": "center",
+                                                "alignItems": "center",
+                                                "items": [
+                                                    {
+                                                        "type": "Image",
+                                                        "id": "imagenTren",
+                                                        "source": "https://mesa-quirurgica-imagenes-946445280155.s3.us-east-1.amazonaws.com/tren.png",
+                                                        "width": "95%",
+                                                        "height": "95%",
+                                                        "scale": "best-fit",
+                                                        "opacity": 0.35
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "Container",
+                                        "width": "18%",
+                                        "alignItems": "center",
+                                        "items": [
+                                            {
+                                                "type": "Text",
+                                                "text": "FOWLER",
+                                                "color": "#64748B",
+                                                "fontSize": "2.2vh",
+                                                "fontWeight": "bold"
+                                            },
+                                            {
+                                                "type": "Text",
+                                                "id": "textoFowler",
+                                                "text": "${payload.datosMesa.valorFowler || '---'}",
+                                                "fontSize": "7vh",
+                                                "color": "#81C784",
+                                                "fontWeight": "800"
+                                            },
+                                            {
+                                                "type": "Text",
+                                                "text": "GRADOS (°)",
+                                                "color": "#64748B",
+                                                "fontSize": "1.9vh"
+                                            },
+                                            {
+                                                "type": "Frame",
+                                                "width": "100%",
+                                                "height": "12vh",
+                                                "backgroundColor": "rgba(0,0,0,0.45)",
+                                                "borderRadius": "8dp",
+                                                "marginTop": "1vh",
+                                                "justifyContent": "center",
+                                                "alignItems": "center",
+                                                "items": [
+                                                    {
+                                                        "type": "Image",
+                                                        "id": "imagenFowler",
+                                                        "source": "https://mesa-quirurgica-imagenes-946445280155.s3.us-east-1.amazonaws.com/fowler.png",
+                                                        "width": "95%",
+                                                        "height": "95%",
+                                                        "scale": "best-fit",
+                                                        "opacity": 0.35
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "Container",
+                                        "width": "18%",
+                                        "alignItems": "center",
+                                        "items": [
+                                            {
+                                                "type": "Text",
+                                                "text": "LONGITUDINAL",
+                                                "color": "#64748B",
+                                                "fontSize": "2.2vh",
+                                                "fontWeight": "bold"
+                                            },
+                                            {
+                                                "type": "Text",
+                                                "id": "textoLong",
+                                                "text": "${payload.datosMesa.valorLong || '---'}",
+                                                "fontSize": "7vh",
+                                                "color": "#64B5F6",
+                                                "fontWeight": "800"
+                                            },
+                                            {
+                                                "type": "Text",
+                                                "text": "MILÍMETROS",
+                                                "color": "#64748B",
+                                                "fontSize": "1.9vh"
+                                            },
+                                            {
+                                                "type": "Frame",
+                                                "width": "100%",
+                                                "height": "12vh",
+                                                "backgroundColor": "rgba(0,0,0,0.45)",
+                                                "borderRadius": "8dp",
+                                                "marginTop": "1vh",
+                                                "justifyContent": "center",
+                                                "alignItems": "center",
+                                                "items": [
+                                                    {
+                                                        "type": "Image",
+                                                        "id": "imagenLong",
+                                                        "source": "https://mesa-quirurgica-imagenes-946445280155.s3.us-east-1.amazonaws.com/cefalico.png",
+                                                        "width": "95%",
+                                                        "height": "95%",
+                                                        "scale": "best-fit",
+                                                        "opacity": 0.35
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "Container",
+                                "direction": "row",
+                                "justifyContent": "spaceBetween",
+                                "items": [
+                                    {
+                                        "type": "Text",
+                                        "text": "ARQUITECTURA: ESP32-S3 FreeRTOS | AWS IoT Shadow",
+                                        "color": "#334155",
+                                        "fontSize": "1.8vh"
+                                    },
+                                    {
+                                        "type": "Text",
+                                        "id": "textoStatus",
+                                        "text": "CICLO SÍNCRONO ACTIVO",
+                                        "color": "#334155",
+                                        "fontSize": "1.8vh"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
             }
-        }
-    },
-    "sources": {}
+        ]
+    }
 }
