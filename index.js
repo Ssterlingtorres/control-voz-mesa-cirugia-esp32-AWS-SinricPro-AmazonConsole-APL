@@ -207,7 +207,7 @@ const TelemetriaEventHandler = {
                     { type: 'SetValue', componentId: 'textoFowler', property: 'text', value: fowlerVal },
                     // Actualizamos el texto longitudinal
                     { type: 'SetValue', componentId: 'textoLong', property: 'text', value: longVal },
-                    // Esperamos 150 ms antes de re-invocar el siguiente ciclo
+                    // Esperamos 1S antes de re-invocar el siguiente ciclo
                     { type: 'Idle', delay: 1000 },
                     // Re-invocamos el mismo evento para mantener el bucle infinito
                     { type: 'SendEvent', arguments: ['SolicitarTelemetriaEnVivo'] }
