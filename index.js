@@ -20,7 +20,7 @@ const sslAgent = new https.Agent({
 // Instanciamos el cliente de AWS IoT Data con la configuración de conexión
 const iotData = new AWS.IotData({
     // Endpoint único de la cuenta en la región us-east-1 de AWS IoT Core
-    endpoint: 'a213cdp4lqcq2s-ats.iot.us-east-1.amazonaws.com',
+    endpoint: 'SU_ENDPOINT-ats.iot.us-east-1.amazonaws.com',
     // Región de AWS donde está alojado el thing y el broker MQTT
     region: 'us-east-1',
     // Opciones HTTP personalizadas para el cliente
